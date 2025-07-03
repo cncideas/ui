@@ -1,0 +1,219 @@
+/* Estilos para la página de tienda */
+
+/* Hero section */
+.tienda-hero {
+    background: linear-gradient(to right, #0056b3, #007bff);
+    color: white;
+    padding: 80px 0;
+    text-align: center;
+  }
+  
+  .tienda-hero h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .tienda-hero p {
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  /* Sección principal de la tienda */
+  .tienda-main {
+    padding: 60px 0;
+    background-color: #f8f9fa;
+  }
+  
+  /* Filtros de categoría */
+  .categorias-filtro {
+    margin-bottom: 40px;
+  }
+  
+  .categorias-filtro h3 {
+    margin-bottom: 15px;
+    font-weight: 600;
+  }
+  
+  .categorias-botones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 30px;
+  }
+  
+  .categoria-btn {
+    background-color: #f1f1f1;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .categoria-btn:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .categoria-btn.active {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  /* Grid de productos */
+  .productos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+  }
+  
+  /* Tarjeta de producto */
+  .producto-card {
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .producto-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+  }
+  
+/* REEMPLAZA tu CSS actual de .producto-imagen img con esto: */
+
+/* Contenedor de imagen del producto */
+.producto-imagen {
+  height: 200px !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: #f8f9fa;
+  overflow: hidden;
+  border-bottom: 1px solid #eee;
+}
+
+.producto-imagen img {
+  width: 80% !important;
+  height: 80% !important;
+  object-fit: contain !important;
+  transition: transform 0.3s ease !important;
+  margin: auto !important;
+}
+
+/* ELIMINA o comenta estas líneas de tu CSS actual:
+.producto-imagen img {
+  width: auto;
+  height: auto;
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+}
+*/
+  
+  .producto-card:hover .producto-imagen img {
+    transform: scale(1.05);
+  }
+  
+  .producto-info {
+    padding: 20px;
+  }
+  
+  .producto-info h3 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  
+  .producto-info p {
+    color: #666;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  
+  .producto-precio {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #007bff;
+    margin-bottom: 15px;
+  }
+  
+  .producto-acciones {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .producto-acciones .btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+  }
+  
+  /* Estados de carga y vacio */
+  .cargando-productos, .no-productos {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px 0;
+  }
+  
+  /* CTA section */
+  .tienda-cta {
+    background-color: #f0f8ff;
+    padding: 80px 0;
+    text-align: center;
+  }
+  
+  .cta-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .cta-content h2 {
+    font-size: 2rem;
+    margin-bottom: 20px;
+  }
+  
+  .cta-content p {
+    margin-bottom: 30px;
+    font-size: 1.1rem;
+    color: #555;
+  }
+  
+  .btn-large {
+    padding: 12px 30px;
+    font-size: 1.1rem;
+  }
+  
+  /* Media queries para responsive */
+  @media (max-width: 768px) {
+    .productos-grid {
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+    }
+    
+    .tienda-hero {
+      padding: 60px 0;
+    }
+    
+    .tienda-hero h1 {
+      font-size: 2rem;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .productos-grid {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+    
+    .producto-acciones {
+      flex-direction: column;
+    }
+  }

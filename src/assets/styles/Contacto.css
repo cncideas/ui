@@ -1,0 +1,77 @@
+.contacto-section {
+  padding: 100px 0;
+  background-color: #0f172a;
+}
+
+.contacto-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.contacto-info {
+  flex: 1 1 300px;
+  color: #1e293b;
+}
+
+.contacto-info h3 {
+  font-size: 22px;
+  margin-bottom: 16px;
+  color: #0f172a;
+}
+
+.contacto-info p {
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #334155;
+}
+
+.contacto-info a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.contacto-info a:hover {
+  text-decoration: underline;
+}
+
+.contacto-form {
+  flex: 1 1 500px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contacto-form input,
+.contacto-form textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 16px;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+}
+
+.contacto-form input:focus,
+.contacto-form textarea:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+.contacto-form button {
+  align-self: flex-start;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .contacto-grid {
+    flex-direction: column;
+  }
+
+  .contacto-form button {
+    width: 100%;
+  }
+}

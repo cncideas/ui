@@ -1,0 +1,77 @@
+.whatsapp-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    background-color: #25D366; /* Color oficial de WhatsApp */
+    color: white;
+    padding: 12px 20px;
+    border-radius: 50px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    transition: all 0.3s ease;
+    text-decoration: none;
+  }
+  
+  .whatsapp-button:hover {
+    background-color: #128C7E; /* Color más oscuro al hacer hover */
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  .whatsapp-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+  }
+  
+  .whatsapp-button span {
+    font-weight: 500;
+    font-size: 14px;
+  }
+  
+  /* Versión móvil (solo icono sin texto) */
+  @media (max-width: 576px) {
+    .whatsapp-button {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      justify-content: center;
+      padding: 0;
+    }
+    
+    .whatsapp-icon {
+      margin-right: 0;
+    }
+    
+    .whatsapp-button span {
+      display: none;
+    }
+  }
+  
+  /* Animación de pulso para llamar más la atención */
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    70% {
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+  }
+  
+  /* Aplicar animación de pulso cada 2 segundos */
+  .whatsapp-button {
+    animation: pulse 2s infinite;
+  }
+  
+  .whatsapp-button:hover {
+    animation: none;
+  }

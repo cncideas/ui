@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../assets/styles/Carrito.css';
 import Navbar from '../Components/Navbar';
-import WhatsAppButton from '../Components/WhatsappButton';
+import WhatsAppButton from '../Components/WhatsAppButton';
 import Footer from '../Components/Footer';
 
 const Carrito = () => {

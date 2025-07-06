@@ -12,7 +12,7 @@ import {
 } from '../store/slices/planosSlice';
 import '../assets/styles/PlanoDetalle.css';
 import Navbar from '../Components/Navbar';
-import WhatsAppButton from '../Components/WhatsappButton';
+import WhatsAppButton from '../Components/WhatsAppButton';
 import Footer from '../Components/Footer';
 
 const PlanoDetalle = () => {

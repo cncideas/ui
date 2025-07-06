@@ -3,9 +3,10 @@ import '../assets/styles/Home.css';
 import Navbar from '../Components/Navbar';
 import Intro from '../Components/Intro';
 import Productos from '../Components/Productos';
-import WhatsAppButton from '../Components/WhatsappButton';
+
 import Footer from '../Components/Footer';
 import { Link, useNavigate } from 'react-router-dom';
+import WhatsAppButton from '../Components/WhatsAppButton';
 
 const Home = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

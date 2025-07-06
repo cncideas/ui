@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import '../assets/styles/Tienda.css';
 import Navbar from '../Components/Navbar';
-import WhatsAppButton from '../Components/WhatsappButton';
+import WhatsAppButton from '../Components/WhatsAppButton';
 import Footer from '../Components/Footer';
 import { Link } from 'react-router-dom';
 

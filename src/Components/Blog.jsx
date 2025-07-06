@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../Components/Navbar';
 import Footer from '../Components/Footer';
-import WhatsAppButton from '../Components/WhatsappButton';
+import WhatsAppButton from '../Components/WhatsAppButton';
 import '../assets/styles/Blog.css';
 
 const Blog = () => {  const [currentPage, setCurrentPage] = useState(1);

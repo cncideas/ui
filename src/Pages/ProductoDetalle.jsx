@@ -8,7 +8,7 @@ import {
 } from '../store/slices/productSlice';
 import '../assets/styles/ProductoDetalle.css';
 import Navbar from '../Components/Navbar';
-import WhatsAppButton from '../Components/WhatsappButton';
+import WhatsAppButton from '../Components/WhatsAppButton';
 import Footer from '../Components/Footer';
 
 const ProductoDetalle = () => {

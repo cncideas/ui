@@ -68,20 +68,14 @@ const Navbar = () => {
             >
               Inicio
             </Link>
-            <Link 
-              to="/nosotros" 
-              className={`nav-link ${isActiveRoute('/nosotros') ? 'active' : ''}`}
-              onClick={closeMenu}
-            >
-              Nosotros
-            </Link>
-              <Link 
+         
+             {/* <Link 
               to="/blog" 
               className={`mobile-nav-link ${isActiveRoute('/servicios') ? 'active' : ''}`}
               onClick={closeMenu}
             >
               Videos
-            </Link>
+            </Link>*/}
             <Link 
               to="/planos" 
               className={`mobile-nav-link ${isActiveRoute('/planos') ? 'active' : ''}`}

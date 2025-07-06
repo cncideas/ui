@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import "../assets/styles/Checkout.css"
 import Navbar from '../Components/Navbar';
 
 const Checkout = () => {
+const API_BASE_URL = 'http://localhost:3000';
+
+  const navigate = useNavigate();
   const [carrito, setCarrito] = useState([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [descuentoAplicado, setDescuentoAplicado] = useState(null);
+  const [cargandoCarrito, setCargandoCarrito] = useState(true);
   
   // Estados para formularios
   const [datosFacturacion, setDatosFacturacion] = useState({
@@ -33,25 +37,60 @@ const Checkout = () => {
   const [metodoPago, setMetodoPago] = useState('');
   const [notas, setNotas] = useState('');
 
-  // Cargar carrito de datos simulados
+  // Cargar carrito real desde localStorage
   useEffect(() => {
-    // Datos simulados para demostración
-    const carritoSimulado = [
-      { id: 1, nombre: 'Producto CNC 1', precio: 150, cantidad: 2, imagen: '/api/placeholder/60/60' },
-      { id: 2, nombre: 'Herramienta Corte', precio: 75, cantidad: 1, imagen: '/api/placeholder/60/60' }
-    ];
+    const carritoGuardado = JSON.parse(localStorage.getItem('carrito') || '[]');
     
-    setCarrito(carritoSimulado);
-    // Simular descuento aplicado
-    setDescuentoAplicado({ codigo: 'DESCUENTO10', porcentaje: 0.10 });
-  }, []);
+    // Si el carrito está vacío, redirigir al carrito
+    if (carritoGuardado.length === 0) {
+      navigate('/carrito');
+      return;
+    }
+    
+    setCarrito(carritoGuardado);
+    setCargandoCarrito(false);
+  }, [navigate]);
 
-  // Calcular totales
+  // Función para determinar si un producto es de planos (igual que en Carrito.jsx)
+  const esProductoPlano = (producto) => {
+    return producto.categoria && 
+           (producto.categoria.toLowerCase().includes('plano') ||
+            producto.categoria.toLowerCase().includes('pdf') ||
+            producto.categoria.toLowerCase().includes('cnc') ||
+            producto.categoria.toLowerCase().includes('diseño') ||
+            producto.categoria.toLowerCase().includes('blueprint') ||
+            producto.categoria.toLowerCase().includes('template'));
+  };
+
+  // Función para obtener la imagen del producto (igual que en Carrito.jsx)
+  const obtenerImagenProducto = (producto) => {
+    if (esProductoPlano(producto)) {
+      return null; // No mostrar imagen, usar ícono PDF
+    }
+    return producto.imagen || '/default-product.jpg';
+  };
+
+  // Función para obtener el ícono según el tipo de producto
+  const obtenerIconoProducto = (producto) => {
+    if (esProductoPlano(producto)) {
+      return '📄'; // Ícono PDF
+    }
+    return '📦'; // Ícono producto físico
+  };
+
+  // Calcular totales (sin descuentos)
   const subtotal = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0);
-  const descuento = descuentoAplicado ? subtotal * descuentoAplicado.porcentaje : 0;
-  const envio = subtotal > 200 ? 0 : 25;
-  const impuestos = (subtotal - descuento + envio) * 0.19;
-  const total = subtotal - descuento + envio + impuestos;
+  const envio = subtotal > 200 ? 0 : 15; // Envío gratis para pedidos > $200 (igual que en Carrito.jsx)
+  const total = subtotal + envio;
+
+  // Función para formatear precio (igual que en Carrito.jsx)
+  const formatearPrecio = (precio) => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0
+    }).format(precio);
+  };
 
   const steps = [
     { id: 1, title: 'Información', icon: '👤' },
@@ -97,41 +136,90 @@ const Checkout = () => {
     }
   };
 
+    // Función para enviar el pedido al backend
+  const enviarPedidoAlBackend = async (pedido) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pedido`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(pedido),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al enviar el pedido');
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error al enviar pedido:', error);
+      throw error;
+    }
+  };
+
   const procesarPedido = async () => {
     setLoading(true);
     
-    // Simular procesamiento
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const pedido = {
-      productos: carrito,
-      datosFacturacion,
-      datosEnvio: datosEnvio.mismoQueFacturacion ? datosFacturacion : datosEnvio,
-      metodoPago,
-      notas,
-      subtotal,
-      descuento,
-      envio,
-      impuestos,
-      total,
-      fecha: new Date().toISOString()
-    };
-    
-    console.log('Pedido procesado:', pedido);
-    
-    // Limpiar carrito
-    localStorage.removeItem('carrito');
-    localStorage.removeItem('descuentoAplicado');
-    
-    setLoading(false);
-    alert('¡Pedido realizado con éxito! Te contactaremos pronto.');
-    // Simular navegación de vuelta
-    window.location.href = '/';
+    try {
+      const pedido = {
+        productos: carrito,
+        datosFacturacion,
+        datosEnvio: datosEnvio.mismoQueFacturacion ? datosFacturacion : datosEnvio,
+        metodoPago,
+        notas,
+        subtotal,
+        envio,
+        total,
+        fecha: new Date().toISOString(),
+        id: Date.now()
+      };
+      
+      console.log('Procesando pedido:', pedido);
+      
+      // Enviar el pedido al backend
+      await enviarPedidoAlBackend(pedido);
+      
+      // Guardar pedido localmente como backup
+      localStorage.setItem('pedidoProcesado', JSON.stringify(pedido));
+      
+      // Limpiar carrito
+      localStorage.removeItem('carrito');
+      
+      // Disparar evento para actualizar navbar
+      window.dispatchEvent(new Event('carritoActualizado'));
+      
+      setLoading(false);
+      alert('¡Pedido realizado con éxito! Te contactaremos pronto para confirmar el pago y envío.');
+      
+      // Navegar de vuelta al inicio
+      navigate('/');
+      
+    } catch (error) {
+      setLoading(false);
+      console.error('Error al procesar pedido:', error);
+      alert('Hubo un error al procesar tu pedido. Por favor, intenta nuevamente o contacta directamente con nosotros.');
+    }
   };
+  // Mostrar loading mientras carga el carrito
+  if (cargandoCarrito) {
+    return (
+      <div className="checkout-page">
+        <Navbar/>
+        <div className="checkout-container">
+          <div className="cargando-checkout">
+            <div className="spinner"></div>
+            <p>Cargando información del pedido...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="checkout-page">
-        <Navbar/>
+      <Navbar/>
       <div className="checkout-container">
         {/* Progress Steps */}
         <div className="progress-steps">
@@ -323,7 +411,7 @@ const Checkout = () => {
                       <div className="option-content">
                         <span className="option-title">Envío Estándar</span>
                         <span className="option-time">5-7 días hábiles</span>
-                        <span className="option-price">{envio === 0 ? 'Gratis' : `$${envio}`}</span>
+                        <span className="option-price">{envio === 0 ? 'Sujeto a operador ' : formatearPrecio(envio)}</span>
                       </div>
                     </label>
                   </div>
@@ -337,10 +425,118 @@ const Checkout = () => {
                       <div className="option-content">
                         <span className="option-title">Envío Express</span>
                         <span className="option-time">2-3 días hábiles</span>
-                        <span className="option-price">$45</span>
+                        <span className="option-price">{envio === 0 ? 'Sujeto a operador ' : formatearPrecio(envio)}</span>
                       </div>
                     </label>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Método de Pago */}
+            {currentStep === 3 && (
+              <div className="step-content">
+                <h3>Método de Pago</h3>
+                <div className="payment-methods">
+                  <div className="payment-option">
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name="metodoPago"
+                        value="transferencia"
+                        checked={metodoPago === 'transferencia'}
+                        onChange={(e) => setMetodoPago(e.target.value)}
+                      />
+                      <div className="option-content">
+                        <span className="option-title">💳 Transferencia Bancaria</span>
+                        <span className="option-desc">Pago directo a cuenta bancaria</span>
+                      </div>
+                    </label>
+                  </div>
+                  <div className="payment-option">
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name="metodoPago"
+                        value="efectivo"
+                        checked={metodoPago === 'efectivo'}
+                        onChange={(e) => setMetodoPago(e.target.value)}
+                      />
+                      <div className="option-content">
+                        <span className="option-title">💵 Efectivo</span>
+                        <span className="option-desc">Pago contra entrega</span>
+                      </div>
+                    </label>
+                  </div>
+                  <div className="payment-option">
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name="metodoPago"
+                        value="nequi"
+                        checked={metodoPago === 'nequi'}
+                        onChange={(e) => setMetodoPago(e.target.value)}
+                      />
+                      <div className="option-content">
+                        <span className="option-title">📱 Nequi</span>
+                        <span className="option-desc">Pago móvil</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                
+                <div className="form-group">
+                  <label>Notas adicionales (opcional)</label>
+                  <textarea
+                    value={notas}
+                    onChange={(e) => setNotas(e.target.value)}
+                    placeholder="Instrucciones especiales para tu pedido..."
+                    rows="4"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Confirmación */}
+            {currentStep === 4 && (
+              <div className="step-content">
+                <h3>Confirmar Pedido</h3>
+                <div className="confirmation-summary">
+                  <div className="confirmation-section">
+                    <h4>📋 Datos de Facturación</h4>
+                    <p><strong>{datosFacturacion.nombre} {datosFacturacion.apellido}</strong></p>
+                    <p>{datosFacturacion.email}</p>
+                    <p>{datosFacturacion.telefono}</p>
+                    <p>{datosFacturacion.direccion}, {datosFacturacion.ciudad}</p>
+                    <p>{datosFacturacion.pais}</p>
+                  </div>
+                  
+                  <div className="confirmation-section">
+                    <h4>🚚 Datos de Envío</h4>
+                    {datosEnvio.mismoQueFacturacion ? (
+                      <p><em>Misma dirección de facturación</em></p>
+                    ) : (
+                      <>
+                        <p><strong>{datosEnvio.nombre} {datosEnvio.apellido}</strong></p>
+                        <p>{datosEnvio.direccion}, {datosEnvio.ciudad}</p>
+                        <p>{datosEnvio.pais}</p>
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className="confirmation-section">
+                    <h4>💳 Método de Pago</h4>
+                    <p>{metodoPago === 'transferencia' ? 'Transferencia Bancaria' : 
+                        metodoPago === 'efectivo' ? 'Efectivo (Contra entrega)' : 
+                        metodoPago === 'nequi' ? 'Nequi' : metodoPago}</p>
+                  </div>
+                  
+                  {notas && (
+                    <div className="confirmation-section">
+                      <h4>📝 Notas</h4>
+                      <p>{notas}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -350,6 +546,7 @@ const Checkout = () => {
                 <button 
                   className="btn btn-secondary"
                   onClick={prevStep}
+                  disabled={loading}
                 >
                   ← Anterior
                 </button>
@@ -384,12 +581,28 @@ const Checkout = () => {
                 {carrito.map(producto => (
                   <div key={producto.id} className="producto-resumen">
                     <div className="producto-imagen-small">
-                      <img src={producto.imagen} alt={producto.nombre} />
+                      {esProductoPlano(producto) ? (
+                        <div className="pdf-icon-small">
+                          <span>📄</span>
+                        </div>
+                      ) : (
+                        <img 
+                          src={obtenerImagenProducto(producto)} 
+                          alt={producto.nombre}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      )}
                       <span className="cantidad-badge">{producto.cantidad}</span>
                     </div>
                     <div className="producto-info-small">
                       <h4>{producto.nombre}</h4>
-                      <p>${(producto.precio * producto.cantidad).toFixed(2)}</p>
+                      <p style={{color:"#09386b"}} className="producto-categoria-small">
+                        {obtenerIconoProducto(producto)} {producto.categoria || 'Producto'}
+                      </p>
+                      <p style={{color:"#09386b"}} className="precio-small">{formatearPrecio(producto.precio * producto.cantidad)}</p>
                     </div>
                   </div>
                 ))}
@@ -397,30 +610,18 @@ const Checkout = () => {
               
               <div className="resumen-totales">
                 <div className="resumen-linea">
-                  <span>Subtotal:</span>
-                  <span>${subtotal.toFixed(2)}</span>
-                </div>
-                
-                {descuentoAplicado && (
-                  <div className="resumen-linea descuento">
-                    <span>Descuento ({descuentoAplicado.codigo}):</span>
-                    <span>-${descuento.toFixed(2)}</span>
-                  </div>
-                )}
-                
-                <div className="resumen-linea">
-                  <span>Envío:</span>
-                  <span>{envio === 0 ? 'Gratis' : `$${envio.toFixed(2)}`}</span>
+                  <span style={{color:"#09386b"}}>Subtotal:</span>
+                  <span style={{color:"#09386b"}}>{formatearPrecio(subtotal)}</span>
                 </div>
                 
                 <div className="resumen-linea">
-                  <span>Impuestos (19%):</span>
-                  <span>${impuestos.toFixed(2)}</span>
+                  <span style={{color:"#09386b"}}>Envío:</span>
+                  <span style={{color:"#09386b"}}>{envio === 0 ? 'Sujeto a operador' : formatearPrecio(envio)}</span>
                 </div>
                 
                 <div className="resumen-linea total">
                   <span>Total:</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{formatearPrecio(total)}</span>
                 </div>
               </div>
             </div>

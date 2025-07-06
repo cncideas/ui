@@ -1,24 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Search, Edit, Trash2, Eye, X, Filter, Download, Upload } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, X, Download } from 'lucide-react';
 import {
   fetchPlanos,
-  fetchPlanosPreview,
   createPlano,
   updatePlano,
   deletePlano,
-  searchPlanosWithFilters,
+  searchPlanos,
   clearError,
   clearSelectedPlano,
-  setFilters,
-  clearFilters,
   clearSearchResults,
   selectPlanos,
-  selectPlanosPreview,
   selectSelectedPlano,
   selectSearchResults,
   selectPlanosLoading,
-  selectPlanosPreviewLoading,
-  selectPlanosSearchLoading,
+  selectSearchLoading,
   selectPlanosError,
   selectPlanosCreating,
   selectPlanosUpdating,
@@ -26,24 +21,35 @@ import {
   selectCurrentPage,
   selectTotalPages,
   selectTotalItems,
-  selectPlanosFilters,
-  selectHasActiveFilters,
+  selectSearchCurrentPage,
+  selectSearchTotalPages,
+  selectSearchTotalItems,
+  selectLastSearchQuery,
+  selectHasSearchResults,
+  setCurrentPage,
+  setSearchCurrentPage,
+  setLastSearchQuery,
 } from '../../store/slices/planosSlice';
 import { fetchCategories } from '../../store/slices/categoriesSlice';
 import "../../assets/styles/Admin/PlanosManagement.css";
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
+
+// Enum para dificultad
+const DIFICULTAD_OPTIONS = [
+  { value: 'BASICO', label: 'Básico' },
+  { value: 'INTERMEDIO', label: 'Intermedio' },
+  { value: 'AVANZADO', label: 'Avanzado' }
+];
 
 const PlanosManagement = () => {
   const dispatch = useAppDispatch();
 
   // Selectores de Redux
   const planos = useAppSelector(selectPlanos);
-  const previewPlanos = useAppSelector(selectPlanosPreview);
   const selectedPlano = useAppSelector(selectSelectedPlano);
   const searchResults = useAppSelector(selectSearchResults);
   const loading = useAppSelector(selectPlanosLoading);
-  const previewLoading = useAppSelector(selectPlanosPreviewLoading);
-  const searchLoading = useAppSelector(selectPlanosSearchLoading);
+  const searchLoading = useAppSelector(selectSearchLoading);
   const creating = useAppSelector(selectPlanosCreating);
   const updating = useAppSelector(selectPlanosUpdating);
   const deleting = useAppSelector(selectPlanosDeleting);
@@ -51,122 +57,90 @@ const PlanosManagement = () => {
   const currentPage = useAppSelector(selectCurrentPage);
   const totalPages = useAppSelector(selectTotalPages);
   const totalItems = useAppSelector(selectTotalItems);
-  const filters = useAppSelector(selectPlanosFilters);
-  const hasActiveFilters = useAppSelector(selectHasActiveFilters);
+  const searchCurrentPage = useAppSelector(selectSearchCurrentPage);
+  const searchTotalPages = useAppSelector(selectSearchTotalPages);
+  const searchTotalItems = useAppSelector(selectSearchTotalItems);
+  const lastSearchQuery = useAppSelector(selectLastSearchQuery);
+  const hasSearchResults = useAppSelector(selectHasSearchResults);
 
-  // Categorías para el formulario (solo como referencia, la categoría será texto libre)
+  // Categorías para el datalist
   const categories = useAppSelector((state) => state.categories.items);
 
   // Estados locales
   const [searchTerm, setSearchTerm] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState('preview'); // 'all' | 'preview'
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedPlanoLocal, setSelectedPlanoLocal] = useState(null);
 
-  // Estados para el formulario - CAMPOS CORREGIDOS
+  // Estados para el formulario - SIN CAMPO PREVIEW
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
-    descripcion_preview: '', // CAMPO REQUERIDO AGREGADO
-    categoria: '', // Texto libre, no select
+    categoria: '',
     tipo_maquina: '',
+    dificultad: '',
+    archivo: null,
+    total_paginas: 1,
     precio: 0,
-    autor: '', // CAMPO REQUERIDO AGREGADO
-    total_paginas: 1, // CAMPO REQUERIDO AGREGADO
-    archivo: null
+    descripcion_preview: '',
+    autor: '',
+    version: '1.0'
   });
 
   // Cargar datos iniciales
   useEffect(() => {
     dispatch(fetchCategories());
-    if (viewMode === 'preview') {
-      dispatch(fetchPlanosPreview({ page: currentPage, limit: 10 }));
-    } else {
-      dispatch(fetchPlanos());
-    }
-  }, [dispatch, viewMode, currentPage]);
+    dispatch(fetchPlanos({ page: 1, limit: 20 }));
+  }, [dispatch]);
 
-  // Datos a mostrar según el modo y filtros
+  // Datos a mostrar según si hay búsqueda activa
   const displayData = useMemo(() => {
-    if (hasActiveFilters || searchTerm) {
-      return searchResults;
-    }
-    return viewMode === 'preview' ? previewPlanos : planos;
-  }, [hasActiveFilters, searchTerm, searchResults, viewMode, previewPlanos, planos]);
+    return hasSearchResults ? searchResults : planos;
+  }, [hasSearchResults, searchResults, planos]);
 
-  // Filtrado local por término de búsqueda
-  const filteredPlanos = useMemo(() => {
-    if (!searchTerm) return displayData;
-
-    return displayData.filter(plano =>
-      plano && (
-        (plano.titulo && plano.titulo.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (plano.descripcion && plano.descripcion.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (plano.categoria && plano.categoria.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (plano.tipo_maquina && plano.tipo_maquina.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (plano.autor && plano.autor.toLowerCase().includes(searchTerm.toLowerCase()))
-      )
-    );
-  }, [displayData, searchTerm]);
-
-  // Paginación local (cuando no hay paginación del servidor)
-  const itemsPerPage = 10;
-  const shouldPaginate = !hasActiveFilters && viewMode !== 'preview';
-  const localTotalPages = shouldPaginate ? Math.ceil(filteredPlanos.length / itemsPerPage) : totalPages;
-  const localCurrentPage = shouldPaginate ? 1 : currentPage;
-
-  const paginatedPlanos = useMemo(() => {
-    if (shouldPaginate) {
-      const startIndex = (localCurrentPage - 1) * itemsPerPage;
-      return filteredPlanos.slice(startIndex, startIndex + itemsPerPage);
-    }
-    return filteredPlanos;
-  }, [filteredPlanos, shouldPaginate, localCurrentPage, itemsPerPage]);
+  // Paginación actual
+  const currentDisplayPage = hasSearchResults ? searchCurrentPage : currentPage;
+  const currentDisplayTotalPages = hasSearchResults ? searchTotalPages : totalPages;
+  const currentDisplayTotalItems = hasSearchResults ? searchTotalItems : totalItems;
 
   // Handlers
   const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handleFilterChange = (filterName, value) => {
-    const newFilters = { ...filters, [filterName]: value };
-    dispatch(setFilters(newFilters));
-
-    // Aplicar filtros si hay alguno activo
-    const hasFilters = Object.values(newFilters).some(val => val !== '');
-    if (hasFilters) {
-      dispatch(searchPlanosWithFilters(newFilters));
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    // Realizar búsqueda con debounce
+    if (value.trim()) {
+      dispatch(setLastSearchQuery(value));
+      dispatch(searchPlanos({ query: value, page: 1, limit: 12 }));
     } else {
       dispatch(clearSearchResults());
     }
   };
 
-  const handleClearFilters = () => {
-    dispatch(clearFilters());
-    dispatch(clearSearchResults());
-    setSearchTerm('');
-  };
-
-  const handleViewModeChange = (mode) => {
-    setViewMode(mode);
-    dispatch(clearSearchResults());
-    setSearchTerm('');
+  const handlePageChange = (newPage) => {
+    if (hasSearchResults) {
+      dispatch(setSearchCurrentPage(newPage));
+      dispatch(searchPlanos({ query: lastSearchQuery, page: newPage, limit: 12 }));
+    } else {
+      dispatch(setCurrentPage(newPage));
+      dispatch(fetchPlanos({ page: newPage, limit: 12 }));
+    }
   };
 
   const handleAddPlano = () => {
     setFormData({
       titulo: '',
       descripcion: '',
-      descripcion_preview: '',
       categoria: '',
       tipo_maquina: '',
-      precio: 0,
-      autor: '',
+      dificultad: '',
+      archivo: null,
       total_paginas: 1,
-      archivo: null
+      precio: 0,
+      descripcion_preview: '',
+      autor: '',
+      version: '1.0'
     });
     setSelectedPlanoLocal(null);
     setShowAddModal(true);
@@ -177,13 +151,15 @@ const PlanosManagement = () => {
     setFormData({
       titulo: plano.titulo || '',
       descripcion: plano.descripcion || '',
-      descripcion_preview: plano.descripcion_preview || '',
       categoria: plano.categoria || '',
       tipo_maquina: plano.tipo_maquina || '',
-      precio: plano.precio || 0,
-      autor: plano.autor || '',
+      dificultad: plano.dificultad || '',
+      archivo: null, // No prellenar archivo para edición
       total_paginas: plano.total_paginas || 1,
-      archivo: null // No prellenar archivo para edición
+      precio: plano.precio || 0,
+      descripcion_preview: plano.descripcion_preview || '',
+      autor: plano.autor || '',
+      version: plano.version || '1.0'
     });
     setShowEditModal(true);
   };
@@ -197,11 +173,11 @@ const PlanosManagement = () => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este plano?')) {
       try {
         await dispatch(deletePlano(planoId)).unwrap();
-        // Recargar datos según el modo actual
-        if (viewMode === 'preview') {
-          dispatch(fetchPlanosPreview({ page: currentPage, limit: 10 }));
+        // Recargar datos
+        if (hasSearchResults) {
+          dispatch(searchPlanos({ query: lastSearchQuery, page: searchCurrentPage, limit: 12 }));
         } else {
-          dispatch(fetchPlanos());
+          dispatch(fetchPlanos({ page: currentPage, limit: 12 }));
         }
       } catch (error) {
         console.error('Error al eliminar plano:', error);
@@ -217,18 +193,20 @@ const PlanosManagement = () => {
     setFormData({
       titulo: '',
       descripcion: '',
-      descripcion_preview: '',
       categoria: '',
       tipo_maquina: '',
-      precio: 0,
-      autor: '',
+      dificultad: '',
+      archivo: null,
       total_paginas: 1,
-      archivo: null
+      precio: 0,
+      descripcion_preview: '',
+      autor: '',
+      version: '1.0'
     });
     dispatch(clearError());
   };
 
-  const isLoading = loading || previewLoading || searchLoading || creating || updating || deleting;
+  const isLoading = loading || searchLoading || creating || updating || deleting;
 
   // Formatear precio
   const formatPrice = (price) => {
@@ -239,19 +217,15 @@ const PlanosManagement = () => {
     }).format(price);
   };
 
-  // Componente de formulario de plano - FORMULARIO CORREGIDO
+  // Formatear dificultad
+  const formatDificultad = (dificultad) => {
+    const option = DIFICULTAD_OPTIONS.find(opt => opt.value === dificultad);
+    return option ? option.label : dificultad;
+  };
+
+  // Componente de formulario de plano - SIN CAMPO PREVIEW
   const PlanoFormModal = ({ isOpen, onClose, title, isEditing }) => {
-    const [localFormData, setLocalFormData] = useState({
-      titulo: '',
-      descripcion: '',
-      descripcion_preview: '',
-      categoria: '',
-      tipo_maquina: '',
-      precio: 0,
-      autor: '',
-      total_paginas: 1,
-      archivo: null
-    });
+    const [localFormData, setLocalFormData] = useState(formData);
 
     useEffect(() => {
       if (isOpen) {
@@ -291,6 +265,11 @@ const PlanosManagement = () => {
         return;
       }
 
+      if (!isEditing && !localFormData.archivo) {
+        alert('Por favor selecciona un archivo');
+        return;
+      }
+
       try {
         if (isEditing && selectedPlanoLocal) {
           await dispatch(updatePlano({
@@ -303,10 +282,10 @@ const PlanosManagement = () => {
 
         onClose();
         // Recargar datos
-        if (viewMode === 'preview') {
-          dispatch(fetchPlanosPreview({ page: currentPage, limit: 10 }));
+        if (hasSearchResults) {
+          dispatch(searchPlanos({ query: lastSearchQuery, page: searchCurrentPage, limit: 12 }));
         } else {
-          dispatch(fetchPlanos());
+          dispatch(fetchPlanos({ page: currentPage, limit: 12 }));
         }
       } catch (error) {
         console.error('Error al guardar plano:', error);
@@ -381,6 +360,24 @@ const PlanosManagement = () => {
               </div>
 
               <div className="form-group">
+                <label htmlFor="version" className="form-label">
+                  Versión *
+                </label>
+                <input
+                  type="text"
+                  id="version"
+                  name="version"
+                  value={localFormData.version}
+                  onChange={handleInputChange}
+                  className="form-input"
+                  placeholder="1.0"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
                 <label htmlFor="total_paginas" className="form-label">
                   Total de Páginas *
                 </label>
@@ -394,6 +391,26 @@ const PlanosManagement = () => {
                   min="1"
                   required
                 />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="dificultad" className="form-label">
+                  Dificultad *
+                </label>
+                <select
+                  id="dificultad"
+                  name="dificultad"
+                  value={localFormData.dificultad}
+                  onChange={handleInputChange}
+                  className="form-input"
+                  required
+                >
+                  {DIFICULTAD_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -411,9 +428,6 @@ const PlanosManagement = () => {
                 rows="2"
                 required
               />
-              <small className="form-help">
-                Esta descripción se mostrará en las tarjetas de vista previa
-              </small>
             </div>
 
             <div className="form-group">
@@ -451,9 +465,6 @@ const PlanosManagement = () => {
                     <option key={cat._id} value={cat.nombre} />
                   ))}
                 </datalist>
-                <small className="form-help">
-                  Puedes escribir una categoría personalizada o seleccionar una sugerida
-                </small>
               </div>
 
               <div className="form-group">
@@ -472,26 +483,22 @@ const PlanosManagement = () => {
               </div>
             </div>
 
-            <div className="form-row">
-
-
-              <div className="form-group">
-                <label htmlFor="archivo" className="form-label">
-                  Archivo {!isEditing && '*'}
-                </label>
-                <input
-                  type="file"
-                  id="archivo"
-                  name="archivo"
-                  onChange={handleInputChange}
-                  className="form-input"
-                  accept=".dwg,.dxf,.pdf,.zip,.rar"
-                  required={!isEditing}
-                />
-                <small className="form-help">
-                  Formatos: DWG, DXF, PDF, ZIP, RAR
-                </small>
-              </div>
+            <div className="form-group">
+              <label htmlFor="archivo" className="form-label">
+                Archivo {!isEditing && '*'}
+              </label>
+              <input
+                type="file"
+                id="archivo"
+                name="archivo"
+                onChange={handleInputChange}
+                className="form-input"
+                accept=".dwg,.dxf,.pdf,.zip,.rar"
+                required={!isEditing}
+              />
+              <small className="form-help">
+                Formatos: DWG, DXF, PDF, ZIP, RAR
+              </small>
             </div>
 
             <div className="modal-actions">
@@ -517,7 +524,7 @@ const PlanosManagement = () => {
     );
   };
 
-  // Modal para ver detalles del plano - ACTUALIZADO CON NUEVOS CAMPOS
+  // Modal para ver detalles del plano - SIN CAMPO PREVIEW
   const PlanoViewModal = ({ isOpen, onClose, plano }) => {
     if (!isOpen || !plano) return null;
 
@@ -549,8 +556,18 @@ const PlanosManagement = () => {
               </div>
 
               <div className="info-row">
+                <span className="info-label">Versión:</span>
+                <span className="info-value">{plano.version}</span>
+              </div>
+
+              <div className="info-row">
                 <span className="info-label">Precio:</span>
                 <span className="info-value price">{formatPrice(plano.precio)}</span>
+              </div>
+
+              <div className="info-row">
+                <span className="info-label">Dificultad:</span>
+                <span className="info-value">{formatDificultad(plano.dificultad)}</span>
               </div>
 
               <div className="info-row">
@@ -558,12 +575,10 @@ const PlanosManagement = () => {
                 <span className="info-value">{plano.total_paginas}</span>
               </div>
 
-              {plano.descripcion_preview && (
-                <div className="info-row">
-                  <span className="info-label">Descripción Preview:</span>
-                  <span className="info-value">{plano.descripcion_preview}</span>
-                </div>
-              )}
+              <div className="info-row">
+                <span className="info-label">Descripción Preview:</span>
+                <span className="info-value">{plano.descripcion_preview}</span>
+              </div>
 
               {plano.descripcion && (
                 <div className="info-row">
@@ -586,8 +601,6 @@ const PlanosManagement = () => {
                 </div>
               )}
 
-
-
               {plano.archivo && (
                 <div className="info-row">
                   <span className="info-label">Archivo:</span>
@@ -605,11 +618,26 @@ const PlanosManagement = () => {
                 </div>
               )}
 
-              {plano.createdAt && (
+              {plano.creado && (
                 <div className="info-row">
                   <span className="info-label">Fecha de creación:</span>
                   <span className="info-value">
-                    {new Date(plano.createdAt).toLocaleDateString('es-ES', {
+                    {new Date(plano.creado).toLocaleDateString('es-ES', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+              )}
+
+              {plano.actualizado && (
+                <div className="info-row">
+                  <span className="info-label">Última actualización:</span>
+                  <span className="info-value">
+                    {new Date(plano.actualizado).toLocaleDateString('es-ES', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',
@@ -647,20 +675,6 @@ const PlanosManagement = () => {
       <div className="planos-header">
         <h1 className="planos-title">Gestión de Planos</h1>
         <div className="header-actions">
-          <div className="view-mode-toggle">
-            <button
-              className={`toggle-btn ${viewMode === 'preview' ? 'active' : ''}`}
-              onClick={() => handleViewModeChange('preview')}
-            >
-              Vista Previa
-            </button>
-            <button
-              className={`toggle-btn ${viewMode === 'all' ? 'active' : ''}`}
-              onClick={() => handleViewModeChange('all')}
-            >
-              Todos
-            </button>
-          </div>
           <button
             className="add-plano-btn"
             onClick={handleAddPlano}
@@ -672,7 +686,7 @@ const PlanosManagement = () => {
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Búsqueda simple */}
       <div className="planos-filters">
         <div className="filters-row">
           <div className="search-container">
@@ -685,84 +699,35 @@ const PlanosManagement = () => {
               onChange={handleSearchChange}
             />
           </div>
-
-          <button
-            className={`filter-toggle-btn ${showFilters ? 'active' : ''}`}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter size={20} />
-            Filtros
-          </button>
-
-          {hasActiveFilters && (
+          {hasSearchResults && (
             <button
               className="clear-filters-btn"
-              onClick={handleClearFilters}
+              onClick={() => {
+                setSearchTerm('');
+                dispatch(clearSearchResults());
+              }}
             >
-              Limpiar Filtros
+              Limpiar Búsqueda
             </button>
           )}
         </div>
-
-        {showFilters && (
-          <div className="filters-expanded">
-
-
-            <div className="filter-group">
-              <label className="filter-label">Tipo de Máquina</label>
-              <input
-                type="text"
-                value={filters.tipo_maquina}
-                onChange={(e) => handleFilterChange('tipo_maquina', e.target.value)}
-                className="filter-input"
-                placeholder="Ej: CNC, Láser..."
-              />
-            </div>
-
-
-
-            <div className="filter-group">
-              <label className="filter-label">Precio Mínimo</label>
-              <input
-                type="number"
-                value={filters.minPrice}
-                onChange={(e) => handleFilterChange('minPrice', e.target.value)}
-                className="filter-input"
-                placeholder="0"
-                min="0"
-              />
-            </div>
-
-            <div className="filter-group">
-              <label className="filter-label">Precio Máximo</label>
-              <input
-                type="number"
-                value={filters.maxPrice}
-                onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-                className="filter-input"
-                placeholder="Sin límite"
-                min="0"
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Estadísticas */}
       <div className="planos-stats">
         <div className="stat-card">
           <span className="stat-label">Total de Planos</span>
-          <span className="stat-value">{totalItems || filteredPlanos.length}</span>
+          <span className="stat-value">{currentDisplayTotalItems}</span>
         </div>
-        {hasActiveFilters && (
+        {hasSearchResults && (
           <div className="stat-card">
-            <span className="stat-label">Resultados Filtrados</span>
-            <span className="stat-value">{filteredPlanos.length}</span>
+            <span className="stat-label">Mostrando</span>
+            <span className="stat-value">{displayData.length}</span>
           </div>
         )}
       </div>
 
-      {/* Mensaje de error */}
+      {/* Error banner */}
       {error && (
         <div className="error-banner">
           <span>Error: {error}</span>
@@ -776,10 +741,10 @@ const PlanosManagement = () => {
           <div className="loading-spinner">
             <div>Cargando planos...</div>
           </div>
-        ) : paginatedPlanos.length === 0 ? (
+        ) : displayData.length === 0 ? (
           <div className="empty-state">
             <h3>No se encontraron planos</h3>
-            <p>Intenta ajustar los filtros o agregar nuevos planos</p>
+            <p>{hasSearchResults ? 'Intenta con otros términos de búsqueda' : 'Comienza agregando nuevos planos'}</p>
           </div>
         ) : (
           <table className="planos-table">
@@ -787,39 +752,47 @@ const PlanosManagement = () => {
               <tr>
                 <th>Plano</th>
                 <th>Categoría</th>
-                <th>Tipo</th>
+                <th>Dificultad</th>
                 <th>Precio</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedPlanos.map(plano => (
+              {displayData.map(plano => (
                 <tr key={plano._id}>
                   <td>
                     <div className="plano-info">
                       <h4 className="plano-title">{plano.titulo}</h4>
-                      {plano.descripcion && (
+                      <p className="plano-author">Por: {plano.autor}</p>
+                      {plano.descripcion_preview && (
                         <p className="plano-description">
-                          {plano.descripcion.length > 100
-                            ? `${plano.descripcion.substring(0, 100)}...`
-                            : plano.descripcion
+                          {plano.descripcion_preview.length > 100
+                            ? `${plano.descripcion_preview.substring(0, 100)}...`
+                            : plano.descripcion_preview
                           }
                         </p>
                       )}
-                      <span className="plano-id">ID: {plano._id}</span>
+                      <div className="plano-meta">
+                        <span className="plano-version">v{plano.version}</span>
+                        <span className="plano-pages">{plano.total_paginas} páginas</span>
+                      </div>
                     </div>
                   </td>
                   <td>
                     <span className="category-tag">
                       {plano.categoria || 'Sin categoría'}
                     </span>
+                    {plano.tipo_maquina && (
+                      <div className="machine-type">
+                        {plano.tipo_maquina}
+                      </div>
+                    )}
                   </td>
                   <td>
-                    <span className="machine-type">
-                      {plano.tipo_maquina || 'No especificado'}
+                    <span className={`difficulty-tag difficulty-${plano.dificultad?.toLowerCase()}`}>
+                      {formatDificultad(plano.dificultad)}
                     </span>
                   </td>
-
                   <td>
                     <span className="price-tag">
                       {formatPrice(plano.precio)}
@@ -872,34 +845,29 @@ const PlanosManagement = () => {
       </div>
 
       {/* Paginación */}
-      {localTotalPages > 1 && (
+      {currentDisplayTotalPages > 1 && (
         <div className="pagination">
           <button
             className="pagination-btn"
-            onClick={() => {
-              if (shouldPaginate) {
-                // Paginación local - implementar lógica si es necesario
-              } else {
-                dispatch(fetchPlanosPreview({ page: currentPage - 1, limit: 10 }));
-              }
-            }}
-            disabled={currentPage === 1 || isLoading}
+            onClick={() => handlePageChange(currentDisplayPage - 1)}
+            disabled={currentDisplayPage === 1 || isLoading}
           >
             Anterior
           </button>
-          <span className="pagination-info">
-            Página {currentPage} de {localTotalPages}
-          </span>
+          
+          <div className="pagination-info">
+            <span>
+              Página {currentDisplayPage} de {currentDisplayTotalPages}
+            </span>
+            <span>
+              ({currentDisplayTotalItems} total)
+            </span>
+          </div>
+
           <button
             className="pagination-btn"
-            onClick={() => {
-              if (shouldPaginate) {
-                // Paginación local - implementar lógica si es necesario
-              } else {
-                dispatch(fetchPlanosPreview({ page: currentPage + 1, limit: 10 }));
-              }
-            }}
-            disabled={currentPage === localTotalPages || isLoading}
+            onClick={() => handlePageChange(currentDisplayPage + 1)}
+            disabled={currentDisplayPage >= currentDisplayTotalPages || isLoading}
           >
             Siguiente
           </button>
@@ -923,7 +891,7 @@ const PlanosManagement = () => {
 
       <PlanoViewModal
         isOpen={showViewModal}
-        onClose={() => setShowViewModal(false)}
+        onClose={handleCloseModal}
         plano={selectedPlanoLocal}
       />
     </div>

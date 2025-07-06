@@ -47,7 +47,7 @@ const Tienda = () => {
       <section className="tienda-hero">
         <div className="container">
           <h1>Nuestra Tienda</h1>
-          <p>Descubre nuestras soluciones de software y hardware para optimizar tus procesos CNC</p>
+          <p>Descubre  productos CNC ... siempre a los mejores precios!!!</p>
         </div>
       </section>
 
@@ -92,7 +92,7 @@ const Tienda = () => {
                     <p>{producto.descripcion}</p>
                     <div className="producto-precio">${producto.precio}</div>
                     <div className="producto-acciones">
-                      <button className="btn btn-primary">Añadir al carrito</button>
+                      
                       <Link to={`/producto/${producto._id || producto.id}`} className="btn btn-secondary">
                         Ver detalles
                       </Link>
@@ -112,7 +112,7 @@ const Tienda = () => {
       <section className="tienda-cta">
         <div className="container">
           <div className="cta-content">
-            <h2>¿Necesitas una solución personalizada?</h2>
+            <h2>¿Necesitas un producto y no lo ves?</h2>
             <p>Nuestro equipo está listo para ayudarte a encontrar la combinación perfecta para tus necesidades</p>
             <button className="btn btn-primary btn-large">Contactar a un asesor</button>
           </div>

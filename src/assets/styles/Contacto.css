@@ -1,5 +1,5 @@
 .contacto-section {
-  padding: 100px 0;
+  padding: 60px 0; /* Reducido de 100px a 60px */
   background-color: #0f172a;
 }
 
@@ -63,10 +63,55 @@
 
 .contacto-form button {
   align-self: flex-start;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.contacto-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #2563eb;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+/* Mensajes de estado */
+.mensaje {
+  padding: 12px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.mensaje.success {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.mensaje.error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
+  .contacto-section {
+    padding: 40px 0; /* Aún más reducido en móviles */
+  }
+  
   .contacto-grid {
     flex-direction: column;
   }

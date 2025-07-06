@@ -82,7 +82,7 @@ const Dashboard = () => {
       case 'planos':
         return (
           <div className="dashboard-section">
-           <PlanosManagement/>
+         <PlanosManagement/>
           </div>
         );
       case 'settings':

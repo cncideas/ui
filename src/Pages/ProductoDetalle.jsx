@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchProductById,
@@ -19,6 +19,7 @@ const ProductoDetalle = () => {
   const producto = useSelector(selectCurrentProduct);
   const cargando = useSelector(selectProductsLoading);
   const [cantidad, setCantidad] = useState(1);
+  const [tabActiva, setTabActiva] = useState('descripcion');
 
   useEffect(() => {
     dispatch(fetchProductById(id));
@@ -41,19 +42,80 @@ const ProductoDetalle = () => {
     }
 
     localStorage.setItem('carrito', JSON.stringify(carrito));
-    alert(`${producto.nombre} agregado al carrito`);
+    
+    // Notificación moderna
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      color: white;
+      padding: 15px 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      z-index: 10000;
+      font-weight: 600;
+      animation: slideIn 0.5s ease-out;
+    `;
+    notification.innerHTML = `✅ ${producto.nombre} agregado al carrito`;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
   };
 
   const irAlCarrito = () => {
     agregarAlCarrito();
-    navigate('/carrito');
+    setTimeout(() => navigate('/carrito'), 500);
   };
 
-  if (cargando || !producto) {
+  const compartirProducto = () => {
+    const url = window.location.href;
+    const texto = `¡Mira este producto! ${producto.nombre} - $${producto.precio}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: producto.nombre,
+        text: texto,
+        url: url,
+      });
+    } else {
+      // Fallback para navegadores que no soportan Web Share API
+      navigator.clipboard.writeText(`${texto} ${url}`);
+      alert('Enlace copiado al portapapeles');
+    }
+  };
+
+  if (cargando) {
     return (
       <div className="producto-detalle-page">
         <Navbar />
-        <div className="cargando-detalle"><p>Cargando producto...</p></div>
+        <div className="cargando-detalle">
+          <div className="spinner-container">
+            <div className="spinner"></div>
+            <p>Cargando producto...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!producto) {
+    return (
+      <div className="producto-detalle-page">
+        <Navbar />
+        <div className="producto-no-encontrado">
+          <h2>Producto no encontrado</h2>
+          <p>Lo sentimos, el producto que buscas no existe o ha sido eliminado.</p>
+          <button 
+            className="btn btn-primary"
+            onClick={() => navigate('/tienda')}
+          >
+            Volver a la tienda
+          </button>
+        </div>
       </div>
     );
   }
@@ -61,12 +123,17 @@ const ProductoDetalle = () => {
   return (
     <div className="producto-detalle-page">
       <Navbar />
+      
       <section className="breadcrumb">
         <div className="container">
           <nav>
-            <span onClick={() => navigate('/')} className="breadcrumb-link">Inicio</span>
+            <span onClick={() => navigate('/')} className="breadcrumb-link">
+              🏠 Inicio
+            </span>
             <span className="breadcrumb-separator">{">"}</span>
-            <span onClick={() => navigate('/tienda')} className="breadcrumb-link">Tienda</span>
+            <span onClick={() => navigate('/tienda')} className="breadcrumb-link">
+              🛍️ Tienda
+            </span>
             <span className="breadcrumb-separator">{">"}</span>
             <span className="breadcrumb-current">{producto.nombre}</span>
           </nav>
@@ -84,41 +151,153 @@ const ProductoDetalle = () => {
                     alt={producto.nombre}
                     onError={(e) => {
                       console.error('Error cargando imagen:', e);
-                      e.target.src = '/placeholder-image.jpg'; // Imagen de respaldo
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
                     }}
                   />
-                ) : (
-                  <div className="imagen-placeholder">
+                ) : null}
+                <div className="imagen-placeholder" style={{ display: producto.imagen ? 'none' : 'flex' }}>
+                  <div>
+                    <p>📦</p>
                     <p>Sin imagen disponible</p>
                   </div>
-                )}
+                </div>
               </div>
             </div>
+
             <div className="producto-info-detalle">
               <h1>{producto.nombre}</h1>
+              
               <div className="producto-categoria">
-                <span className="categoria-badge">{producto.categoria?.nombre || 'Sin categoría'}</span>
+                <span className="categoria-badge">
+                  {producto.categoria?.nombre || 'Sin categoría'}
+                </span>
               </div>
+
               <div className="producto-precio-detalle">
-                <span className="precio-actual">${producto.precio}</span>
+                <span className="precio-actual">${producto.precio?.toLocaleString()}</span>
               </div>
+
               <div className="producto-descripcion">
-                <p>{producto.descripcion}</p>
+                <p>{producto.descripcion || 'Sin descripción disponible'}</p>
               </div>
 
               <div className="cantidad-control">
                 <label>Cantidad:</label>
                 <div className="cantidad-selector">
-                  <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} className="cantidad-btn">-</button>
+                  <button 
+                    onClick={() => setCantidad(Math.max(1, cantidad - 1))} 
+                    className="cantidad-btn"
+                    disabled={cantidad <= 1}
+                  >
+                    -
+                  </button>
                   <span className="cantidad-display">{cantidad}</span>
-                  <button onClick={() => setCantidad(cantidad + 1)} className="cantidad-btn">+</button>
+                  <button 
+                    onClick={() => setCantidad(cantidad + 1)} 
+                    className="cantidad-btn"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
 
               <div className="producto-acciones-detalle">
-                <button className="btn btn-primary btn-large" onClick={agregarAlCarrito}>Agregar al carrito</button>
-                <button className="btn btn-secondary btn-large" onClick={irAlCarrito}>Comprar ahora</button>
+                <button 
+                  className="btn btn-primary btn-large" 
+                  onClick={agregarAlCarrito}
+                >
+                  Agregar al carrito
+                </button>
+                <button 
+                  className="btn btn-success btn-large" 
+                  onClick={irAlCarrito}
+                >
+                  Comprar Ahora
+                </button>
               </div>
+
+              <div className="producto-acciones-detalle">
+                <button 
+                  className="btn btn-secondary btn-large" 
+                  onClick={compartirProducto}
+                  style={{
+                    background: 'linear-gradient(135deg, #6c757d 0%, #495057 100%)',
+                    color: 'white',
+                    border: 'none'
+                  }}
+                >
+                  📤 Compartir
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs de información adicional */}
+          <div className="producto-tabs">
+            <div className="tabs-nav">
+              <button 
+                className={`tab-btn ${tabActiva === 'descripcion' ? 'active' : ''}`}
+                onClick={() => setTabActiva('descripcion')}
+              >
+                📝 Descripción
+              </button>
+              <button 
+                className={`tab-btn ${tabActiva === 'especificaciones' ? 'active' : ''}`}
+                onClick={() => setTabActiva('especificaciones')}
+              >
+                ⚙️ Especificaciones
+              </button>
+              <button 
+                className={`tab-btn ${tabActiva === 'garantia' ? 'active' : ''}`}
+                onClick={() => setTabActiva('garantia')}
+              >
+                🛡️ Garantía
+              </button>
+            </div>
+
+            <div className={`tab-content ${tabActiva === 'descripcion' ? 'active' : ''}`}>
+              <h3>Descripción del Producto</h3>
+              <p>{producto.descripcion || 'Descripción detallada del producto no disponible.'}</p>
+              <ul>
+                <li>Producto de alta calidad</li>
+                <li>Diseño moderno y funcional</li>
+                <li>Fácil instalación y uso</li>
+                <li>Materiales duraderos</li>
+              </ul>
+            </div>
+
+            <div className={`tab-content ${tabActiva === 'especificaciones' ? 'active' : ''}`}>
+              <h3>Especificaciones Técnicas</h3>
+              <div className="requisitos-grid">
+                <div className="requisito-item">
+                  <strong>Categoría:</strong>
+                  <span>{producto.categoria?.nombre || 'No especificada'}</span>
+                </div>
+                <div className="requisito-item">
+                  <strong>Código:</strong>
+                  <span>{producto._id}</span>
+                </div>
+                <div className="requisito-item">
+                  <strong>Precio:</strong>
+                  <span>${producto.precio?.toLocaleString()}</span>
+                </div>
+                <div className="requisito-item">
+                  <strong>Disponibilidad:</strong>
+                  <span>En stock</span>
+                </div>
+              </div>
+            </div>
+
+            <div className={`tab-content ${tabActiva === 'garantia' ? 'active' : ''}`}>
+              <h3>Garantía y Servicio</h3>
+              <ul>
+                <li>Garantía de 12 meses contra defectos de fabricación</li>
+                <li>Servicio técnico especializado</li>
+                <li>Soporte telefónico y por chat</li>
+                <li>Cambios y devoluciones dentro de los 30 días</li>
+                <li>Envío gratuito en compras superiores a $100.000</li>
+              </ul>
             </div>
           </div>
         </div>

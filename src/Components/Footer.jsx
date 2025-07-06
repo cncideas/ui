@@ -1,66 +1,335 @@
 import React from 'react';
-import '../assets/styles/Home.css';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
     <footer className="footer">
-    <div className="container">
-      <div className="footer-columns">
-        <div className="footer-column">
-          <div className="footer-logo">
-            <img src="/api/placeholder/150/50" alt="Logo" />
+      <div className="container">
+        {/* Sección Principal del Footer */}
+        <div className="footer-main">
+          <div className="footer-brand">
+            <div className="footer-logo-section">
+              <div className="footer-logo">
+                <img src="/logo.png" alt="CNC Ideas Logo" />
+              </div>
+              
+            </div>
+            <p className="footer-description">
+              Productos y programación CNC
+            </p>
+            <div className="social-links">
+              <a 
+                href="https://web.facebook.com/profile.php?id=100064680970090&locale=es_LA" 
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Facebook"
+                className="social-link"
+              >
+           <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="48" height="48" viewBox="0 0 48 48">
+<path fill="#039be5" d="M24 5A19 19 0 1 0 24 43A19 19 0 1 0 24 5Z"></path><path fill="#fff" d="M26.572,29.036h4.917l0.772-4.995h-5.69v-2.73c0-2.075,0.678-3.915,2.619-3.915h3.119v-4.359c-0.548-0.074-1.707-0.236-3.897-0.236c-4.573,0-7.254,2.415-7.254,7.917v3.323h-4.701v4.995h4.701v13.729C22.089,42.905,23.032,43,24,43c0.875,0,1.729-0.08,2.572-0.194V29.036z"></path>
+</svg>
+              </a>
+              <a 
+                href="https://www.youtube.com/@Cncideas817" 
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="YouTube"
+                className="social-link"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="48" height="48" viewBox="0 0 48 48">
+<path fill="#455A64" d="M14.539 6h2.125l1.37 5.496h.133l1.308-5.493h2.147l-2.458 8.036V20h-2.112v-5.703L14.539 6zM21.525 11.923c0-.784.254-1.411.759-1.874.504-.466 1.182-.7 2.035-.7.778 0 1.413.245 1.908.737.495.488.743 1.121.743 1.894v5.235c0 .866-.242 1.548-.728 2.044C25.756 19.753 25.09 20 24.235 20c-.823 0-1.477-.259-1.974-.767-.493-.508-.738-1.194-.738-2.055v-5.256H21.525zM23.455 17.368c0 .275.066.494.205.646.132.15.322.226.571.226.255 0 .454-.077.604-.234.149-.151.226-.366.226-.638v-5.522c0-.22-.079-.399-.231-.536-.151-.135-.352-.205-.599-.205-.229 0-.417.07-.561.205-.143.137-.215.316-.215.536V17.368zM33.918 9.605V20h-1.875v-1.266c-.346.414-.705.728-1.081.941C30.59 19.89 30.227 20 29.876 20c-.435 0-.76-.149-.981-.452-.221-.3-.329-.751-.329-1.357V9.605h1.874v7.886c0 .236.04.41.12.519.075.104.207.162.38.162.141 0 .315-.071.522-.215.213-.141.406-.324.581-.544V9.605H33.918z"></path><path fill="#FFF" d="M38.799,26.439c0-2.342-1.94-4.24-4.329-4.24c-3.412-0.143-6.905-0.203-10.47-0.198c-3.563-0.005-7.056,0.056-10.47,0.198c-2.387,0-4.327,1.898-4.327,4.24C9.061,28.291,8.995,30.145,9,32.001c-0.005,1.853,0.06,3.707,0.204,5.561c0,2.345,1.938,4.243,4.326,4.243c3.414,0.14,6.907,0.2,10.47,0.195c3.564,0.008,7.058-0.056,10.47-0.195c2.389,0,4.329-1.898,4.329-4.243c0.142-1.854,0.209-3.708,0.201-5.561C39.008,30.145,38.941,28.291,38.799,26.439z"></path><g><path fill="#F44336" d="M33.851 30.346c-.219 0-.368.058-.458.18-.064.091-.145.299-.145.752v.774h1.193v-.774c0-.446-.083-.655-.151-.757C34.205 30.402 34.061 30.346 33.851 30.346zM26.865 30.386c-.086.042-.17.105-.258.193v5.876c.11.111.217.191.316.242.111.055.224.08.346.08.231 0 .303-.091.326-.123.057-.071.119-.219.119-.54v-5.005c0-.278-.053-.493-.152-.625C27.428 30.306 27.164 30.236 26.865 30.386z"></path><path fill="#F44336" d="M38.799,26.439c0-2.342-1.94-4.24-4.329-4.24c-3.412-0.143-6.905-0.203-10.47-0.198c-3.563-0.005-7.056,0.056-10.47,0.198c-2.387,0-4.327,1.898-4.327,4.24C9.061,28.291,8.995,30.145,9,32.001c-0.005,1.853,0.06,3.707,0.204,5.561c0,2.345,1.938,4.243,4.326,4.243c3.414,0.14,6.907,0.2,10.47,0.195c3.564,0.008,7.058-0.056,10.47-0.195c2.389,0,4.329-1.898,4.329-4.243c0.142-1.854,0.209-3.708,0.201-5.561C39.008,30.145,38.941,28.291,38.799,26.439z M15.701,38.382c0,0.111-0.092,0.204-0.206,0.204h-2.049c-0.114,0-0.206-0.093-0.206-0.204v-11.03h-1.914c-0.113,0-0.205-0.092-0.205-0.203v-1.904c0-0.112,0.092-0.204,0.205-0.204h6.291c0.114,0,0.206,0.092,0.206,0.204v1.904c0,0.111-0.091,0.203-0.206,0.203h-1.916V38.382z M22.995,38.382c0,0.111-0.092,0.204-0.206,0.204h-1.822c-0.114,0-0.206-0.093-0.206-0.204v-0.551c-0.243,0.233-0.486,0.418-0.738,0.56c-0.397,0.227-0.776,0.336-1.16,0.336c-0.488,0-0.864-0.176-1.117-0.517c-0.238-0.324-0.361-0.803-0.361-1.421v-8.1c0-0.112,0.092-0.204,0.207-0.204h1.821c0.114,0,0.206,0.092,0.206,0.204v7.428c0,0.244,0.044,0.343,0.072,0.382c0.013,0.017,0.05,0.067,0.205,0.067c0.052,0,0.172-0.022,0.389-0.169c0.176-0.115,0.334-0.259,0.473-0.425v-7.283c0-0.112,0.092-0.204,0.207-0.204h1.821c0.114,0,0.206,0.092,0.206,0.204v9.692H22.995z M30,36.373c0,0.736-0.159,1.31-0.473,1.708c-0.326,0.418-0.797,0.626-1.398,0.626c-0.383,0-0.733-0.077-1.046-0.233c-0.166-0.083-0.327-0.191-0.479-0.325v0.233c0,0.114-0.093,0.204-0.206,0.204h-1.837c-0.114,0-0.207-0.09-0.207-0.204v-13.14c0-0.112,0.092-0.203,0.207-0.203h1.837c0.113,0,0.206,0.091,0.206,0.203v3.717c0.15-0.136,0.31-0.25,0.474-0.343c0.309-0.17,0.625-0.256,0.941-0.256c0.641,0,1.143,0.238,1.484,0.706c0.328,0.45,0.495,1.101,0.495,1.933L30,36.373L30,36.373z M36.729,33.765c0,0.113-0.093,0.205-0.207,0.205h-3.273v1.621c0,0.592,0.082,0.845,0.148,0.951c0.053,0.088,0.152,0.199,0.438,0.199c0.23,0,0.388-0.055,0.469-0.164c0.037-0.058,0.139-0.28,0.139-0.988v-0.675c0-0.114,0.093-0.204,0.207-0.204h1.872c0.114,0,0.205,0.09,0.205,0.204v0.729c0,1.044-0.249,1.844-0.737,2.384c-0.49,0.543-1.23,0.82-2.198,0.82c-0.872,0-1.574-0.296-2.079-0.871c-0.5-0.571-0.755-1.354-0.755-2.333v-4.352c0-0.892,0.278-1.63,0.83-2.196c0.55-0.568,1.274-0.857,2.144-0.857c0.89,0,1.587,0.271,2.072,0.803c0.48,0.526,0.724,1.284,0.724,2.251v2.474H36.729z"></path></g>
+</svg>
+              </a>
+            </div>
           </div>
-          <p>Software de control CNC revolucionario para profesionales y empresas.</p>
-          <div className="social-links">
-            <a href="#" aria-label="Facebook"><i className="fab fa-facebook"></i></a>
-            <a href="#" aria-label="Twitter"><i className="fab fa-twitter"></i></a>
-            <a href="#" aria-label="LinkedIn"><i className="fab fa-linkedin"></i></a>
-            <a href="#" aria-label="YouTube"><i className="fab fa-youtube"></i></a>
+          
+          <div className="footer-links">
+            <div className="footer-section">
+              <h4>Servicios</h4>
+              <ul>
+                <li><Link to={'/tienda'}>Productos CNC</Link></li>
+                <li><Link to={'/planos'}>Planos</Link></li>
+                <li><Link to={'/blog'}>Videos</Link></li>
+                <li><Link to={"/contactenos"}>Consultoría</Link></li>
+              </ul>
+            </div>
+            
+            <div className="footer-section">
+              <h4>Contacto</h4>
+              <ul>
+                <li>Manizales, Caldas</li>
+                <li>Colombia</li>
+                <li><Link to={'/contactenos'}>Escribenos</Link></li>
+              </ul>
+            </div>
           </div>
         </div>
         
-        <div className="footer-column">
-          <h4>Producto</h4>
-          <ul>
-            <li><a href="#features">Características</a></li>
-            <li><a href="#pricing">Precios</a></li>
-            <li><a href="#faq">FAQ</a></li>
-            <li><a href="#roadmap">Roadmap</a></li>
-          </ul>
-        </div>
+        {/* Línea divisoria */}
+        <div className="footer-divider"></div>
         
-        <div className="footer-column">
-          <h4>Empresa</h4>
-          <ul>
-            <li><a href="#about">Sobre Nosotros</a></li>
-            <li><a href="#blog">Blog</a></li>
-            <li><a href="#careers">Empleo</a></li>
-            <li><a href="#contact">Contacto</a></li>
-          </ul>
-        </div>
-        
-        <div className="footer-column">
-          <h4>Soporte</h4>
-          <ul>
-            <li><a href="#help">Centro de Ayuda</a></li>
-            <li><a href="#docs">Documentación</a></li>
-            <li><a href="#community">Comunidad</a></li>
-            <li><a href="#training">Entrenamiento</a></li>
-          </ul>
+        {/* Sección inferior */}
+        <div className="footer-bottom">
+          <div className="copyright">
+            © 2025 CNC Ideas. Todos los derechos reservados.
+          </div>
+          <div className="legal-links">
+            <a href="/terms">Términos de Servicio</a>
+            <a href="/privacy">Política de Privacidad</a>
+          </div>
         </div>
       </div>
       
-      <div className="footer-bottom">
-        <div className="copyright">
-          &copy; 2025 Tu Empresa. Todos los derechos reservados.
-        </div>
-        <div className="legal-links">
-          <a href="#terms">Términos de Servicio</a>
-          <a href="#privacy">Política de Privacidad</a>
-        </div>
-      </div>
-    </div>
-  </footer>
+      <style jsx>{`
+        .footer {
+          background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+          color: #ffffff;
+          padding: 60px 0 30px;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .footer::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+          opacity: 0.1;
+        }
+        
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 20px;
+          position: relative;
+          z-index: 1;
+        }
+        
+        .footer-main {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 80px;
+          margin-bottom: 40px;
+          align-items: start;
+        }
+        
+        .footer-brand {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        
+        .footer-logo-section {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          margin-bottom: 10px;
+          height:100px;
+        }
+        
+        .footer-logo img {
+          height: 100px;
+          width: 200px;
+          filter: brightness(1.1);
+        }
+        
+        .company-name {
+          font-size: 28px;
+          font-weight: 700;
+          color: #e53e3e;
+          margin: 0;
+          text-shadow: 0 2px 4px rgba(229, 62, 62, 0.3);
+        }
+        
+        .footer-description {
+          font-size: 16px;
+          color: #a0a0a0;
+          margin-bottom: 30px;
+          line-height: 1.6;
+          max-width: 300px;
+        }
+        
+        .social-links {
+          display: flex;
+          gap: 15px;
+        }
+        
+        .social-link {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 45px;
+          height: 45px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 50%;
+          color: #ffffff;
+          text-decoration: none;
+          transition: all 0.3s ease;
+          backdrop-filter: blur(10px);
+        }
+        
+        .social-link:hover {
+          background: rgba(255, 255, 255, 0.2);
+          transform: translateY(-2px);
+        }
+        
+        .footer-links {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 60px;
+          justify-content: space-between;
+          align-items: start;
+        }
+        
+        .footer-section {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .footer-section h4 {
+          font-size: 20px;
+          font-weight: 600;
+          margin-bottom: 20px;
+          color: #ffffff;
+          position: relative;
+        }
+        
+        .footer-section h4::after {
+          content: '';
+          position: absolute;
+          bottom: -8px;
+          left: 0;
+          width: 30px;
+          height: 2px;
+          background: #4a90e2;
+        }
+        
+        .footer-section ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+        
+        .footer-section ul li {
+          margin-bottom: 12px;
+        }
+        
+        .footer-section ul li a,
+        .footer-section ul li {
+          color: #a0a0a0;
+          text-decoration: none;
+          font-size: 14px;
+          transition: color 0.3s ease;
+        }
+        
+        .footer-section ul li a:hover {
+          color: #4a90e2;
+        }
+        
+        .footer-divider {
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+          margin: 40px 0 30px;
+        }
+        
+        .footer-bottom {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 20px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .copyright {
+          color: #a0a0a0;
+          font-size: 14px;
+        }
+        
+        .legal-links {
+          display: flex;
+          gap: 30px;
+        }
+        
+        .legal-links a {
+          color: #a0a0a0;
+          text-decoration: none;
+          font-size: 14px;
+          transition: color 0.3s ease;
+        }
+        
+        .legal-links a:hover {
+          color: #4a90e2;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+          .footer {
+            padding: 40px 0 20px;
+          }
+          
+          .footer-main {
+            grid-template-columns: 1fr;
+            gap: 40px;
+            text-align: center;
+          }
+          
+          .footer-brand {
+            align-items: center;
+          }
+          
+          .footer-logo-section {
+            flex-direction: column;
+            gap: 10px;
+          }
+          
+          .company-name {
+            font-size: 24px;
+          }
+          
+          .footer-links {
+            grid-template-columns: 1fr;
+            gap: 30px;
+          }
+          
+          .footer-bottom {
+            flex-direction: column;
+            gap: 20px;
+            text-align: center;
+          }
+          
+          .legal-links {
+            flex-direction: column;
+            gap: 15px;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .container {
+            padding: 0 15px;
+          }
+          
+          .footer-logo img {
+            height: 40px;
+          }
+          
+          .company-name {
+            font-size: 20px;
+          }
+          
+          .footer-description {
+            font-size: 14px;
+          }
+          
+          .social-link {
+            width: 40px;
+            height: 40px;
+          }
+        }
+      `}</style>
+    </footer>
   );
 };
 

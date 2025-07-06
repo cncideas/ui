@@ -22,12 +22,12 @@ const Sidebar = ({ activeSection, setActiveSection, isMobileOpen, setIsMobileOpe
       badge: null
     },
     
-    {
+   /* {
       id: 'blog',
       label: 'Blog',
       icon: '📝',
       description: 'Artículos y noticias'
-    },
+    },*/
     {
       id: 'planos',
       label: 'Planos',

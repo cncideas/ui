@@ -1,10 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchPlanoById,
+  fetchPlanoPreview,
   selectSelectedPlano,
-  selectPlanosLoading
+  selectPlanosLoading,
+  selectPreviewLoading,
+  selectPreviewData,
+  clearPreviewData
 } from '../store/slices/planosSlice';
 import '../assets/styles/PlanoDetalle.css';
 import Navbar from '../Components/Navbar';
@@ -18,38 +22,112 @@ const PlanoDetalle = () => {
 
   const plano = useSelector(selectSelectedPlano);
   const cargando = useSelector(selectPlanosLoading);
+  const previewLoading = useSelector(selectPreviewLoading);
+  const previewData = useSelector(state => selectPreviewData(state, id));
+  
+  const [intentosPreview, setIntentosPreview] = useState(0);
+  const [errorPreview, setErrorPreview] = useState(null);
   const [tabActiva, setTabActiva] = useState('descripcion');
   const [paginaActual, setPaginaActual] = useState(1);
 
+  // Calcular si tiene archivo de forma estable
+  const tieneArchivo = useMemo(() => {
+    return plano && (
+      plano.archivo || 
+      plano.tieneArchivo || 
+      plano.archivo === 'archivo-disponible' ||
+      (plano.total_paginas && plano.total_paginas > 0)
+    );
+  }, [plano]);
+
+  // Cargar plano inicial
   useEffect(() => {
     dispatch(fetchPlanoById(id));
+    dispatch(clearPreviewData(id));
   }, [dispatch, id]);
 
-  const agregarAlCarrito = () => {
-    const carrito = JSON.parse(localStorage.getItem('carrito_planos') || '[]');
-    const existente = carrito.find(item => item._id === plano._id);
-
-    if (existente) {
-      alert('Este plano ya está en tu carrito');
-      return;
+  // Cargar preview cuando sea necesario
+  useEffect(() => {
+    if (tieneArchivo && !previewData && !previewLoading && intentosPreview < 3) {
+      setIntentosPreview(prev => prev + 1);
+      dispatch(fetchPlanoPreview(id))
+        .unwrap()
+        .then(() => {
+          setErrorPreview(null);
+        })
+        .catch((error) => {
+          setErrorPreview(error.message || 'Error al cargar preview');
+        });
     }
+  }, [dispatch, id, tieneArchivo, previewData, previewLoading, intentosPreview]);
 
-    carrito.push({
-      _id: plano._id,
-      titulo: plano.titulo,
-      precio: plano.precio,
-      preview_imagen: plano.preview_imagen,
-      tipo: 'plano'
-    });
-
-    localStorage.setItem('carrito_planos', JSON.stringify(carrito));
-    alert(`${plano.titulo} agregado al carrito`);
+  const reintentarPreview = () => {
+    setIntentosPreview(0);
+    setErrorPreview(null);
+    dispatch(clearPreviewData(id));
+    
+    setTimeout(() => {
+      if (tieneArchivo) {
+        dispatch(fetchPlanoPreview(id))
+          .unwrap()
+          .then(() => {
+            setErrorPreview(null);
+          })
+          .catch((error) => {
+            setErrorPreview(error.message || 'Error al cargar preview');
+          });
+      }
+    }, 100);
   };
 
-  const comprarAhora = () => {
-    agregarAlCarrito();
-    navigate('/checkout');
-  };
+const agregarAlCarrito = () => {
+  // Usar el mismo localStorage que productos
+  const carrito = JSON.parse(localStorage.getItem('carrito') || '[]');
+  const existente = carrito.find(item => item._id === plano._id);
+
+  if (existente) {
+    alert('Este plano ya está en tu carrito');
+    return;
+  }
+
+  carrito.push({
+    _id: plano._id,
+    nombre: plano.titulo, // Cambiar 'titulo' por 'nombre' para consistencia
+    precio: plano.precio,
+    imagen: plano.preview_imagen, // Cambiar 'preview_imagen' por 'imagen'
+    cantidad: 1, // Agregar cantidad para consistencia
+    tipo: 'plano' // Mantener tipo para diferenciar
+  });
+
+  localStorage.setItem('carrito', JSON.stringify(carrito));
+  
+  // Notificación moderna como en productos
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 10000;
+    font-weight: 600;
+    animation: slideIn 0.5s ease-out;
+  `;
+  notification.innerHTML = `✅ ${plano.titulo} agregado al carrito`;
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.remove();
+  }, 3000);
+};
+
+const comprarAhora = () => {
+  agregarAlCarrito();
+  setTimeout(() => navigate('/carrito'), 500); // Agregar delay como en productos
+};
 
   const formatearDificultad = (dificultad) => {
     const niveles = {
@@ -60,35 +138,95 @@ const PlanoDetalle = () => {
     return niveles[dificultad] || dificultad;
   };
 
+  const cambiarPagina = (nuevaPagina) => {
+    if (!previewData) return;
+    
+    const paginasDisponibles = previewData.previewPages || [1, 2, 3];
+    
+    if (nuevaPagina >= 1 && nuevaPagina <= paginasDisponibles.length) {
+      setPaginaActual(nuevaPagina);
+    }
+  };
+
   const renderizarPreviewPDF = () => {
-    if (!plano.archivo) {
+    // Sin archivo disponible
+    if (!plano || !tieneArchivo) {
       return (
         <div className="pdf-no-disponible">
           <i className="fas fa-file-pdf"></i>
           <p>Vista previa no disponible</p>
+          <small>Este plano no tiene archivo asociado</small>
         </div>
       );
     }
 
-    // Simulamos páginas de preview (normalmente sería del backend)
-    const paginasPreview = Math.min(3, plano.total_paginas || 1);
+    // Cargando
+    if (previewLoading) {
+      return (
+        <div className="pdf-loading">
+          <i className="fas fa-spinner fa-spin"></i>
+          <p>Cargando vista previa...</p>
+        </div>
+      );
+    }
+
+    // Error
+    if (errorPreview || (intentosPreview >= 3 && !previewData)) {
+      return (
+        <div className="pdf-error">
+          <i className="fas fa-exclamation-triangle"></i>
+          <p>Error al cargar vista previa</p>
+          {errorPreview && <small>{errorPreview}</small>}
+          <button 
+            className="btn btn-sm"
+            onClick={reintentarPreview}
+            disabled={previewLoading}
+            style={{ marginTop: '10px' }}
+          >
+            Reintentar
+          </button>
+        </div>
+      );
+    }
+
+    // Esperando datos
+    if (!previewData && !previewLoading) {
+      return (
+        <div className="pdf-waiting">
+          <i className="fas fa-clock"></i>
+          <p>Preparando vista previa...</p>
+          <button 
+            className="btn btn-sm"
+            onClick={reintentarPreview}
+            style={{ marginTop: '10px' }}
+          >
+            Cargar Preview
+          </button>
+        </div>
+      );
+    }
+
+    // Preview exitoso
+    const paginasDisponibles = previewData.previewPages || [1, 2, 3];
+    const totalPaginas = plano.total_paginas || paginasDisponibles.length;
+    const paginaReal = paginasDisponibles[paginaActual - 1];
     
     return (
       <div className="pdf-preview-container">
         <div className="pdf-controls">
           <button 
-            onClick={() => setPaginaActual(Math.max(1, paginaActual - 1))}
+            onClick={() => cambiarPagina(paginaActual - 1)}
             disabled={paginaActual === 1}
             className="btn btn-sm"
           >
             <i className="fas fa-chevron-left"></i>
           </button>
           <span className="pagina-info">
-            Página {paginaActual} de {paginasPreview} (Vista previa)
+            Página {paginaReal} de {totalPaginas} (Vista previa)
           </span>
           <button 
-            onClick={() => setPaginaActual(Math.min(paginasPreview, paginaActual + 1))}
-            disabled={paginaActual === paginasPreview}
+            onClick={() => cambiarPagina(paginaActual + 1)}
+            disabled={paginaActual === paginasDisponibles.length}
             className="btn btn-sm"
           >
             <i className="fas fa-chevron-right"></i>
@@ -96,23 +234,31 @@ const PlanoDetalle = () => {
         </div>
         
         <div className="pdf-viewer">
-          {plano.preview_imagen ? (
-            <img 
-              src={`${plano.preview_imagen}?page=${paginaActual}`} 
-              alt={`${plano.titulo} - Página ${paginaActual}`}
-              className="pdf-page"
-            />
-          ) : (
-            <div className="pdf-placeholder">
-              <i className="fas fa-file-pdf"></i>
-              <p>Vista previa - Página {paginaActual}</p>
-              <small>Compra el plano para ver el contenido completo</small>
-            </div>
-          )}
+          <PDFPage 
+            previewData={previewData}
+            paginaActual={paginaActual}
+            paginaReal={paginaReal}
+            planoTitulo={plano.titulo}
+          />
         </div>
         
         <div className="pdf-watermark">
-          <p>Vista previa limitada - {paginasPreview} de {plano.total_paginas || 1} páginas</p>
+          <div className="watermark-content">
+            <i className="fas fa-lock"></i>
+            <p>Vista previa limitada - {paginasDisponibles.length} de {totalPaginas} páginas disponibles</p>
+            <small>Compra el plano para desbloquear todas las páginas</small>
+          </div>
+        </div>
+        
+        <div className="pdf-navigation-dots">
+          {paginasDisponibles.map((pagina, index) => (
+            <button
+              key={pagina}
+              className={`dot ${paginaActual === index + 1 ? 'active' : ''}`}
+              onClick={() => cambiarPagina(index + 1)}
+              title={`Página ${pagina}`}
+            />
+          ))}
         </div>
       </div>
     );
@@ -149,13 +295,11 @@ const PlanoDetalle = () => {
       <section className="plano-detalle-main">
         <div className="container">
           <div className="plano-detalle-grid">
-            {/* Columna del visor PDF */}
             <div className="plano-preview-section">
               <h2>Vista Previa</h2>
               {renderizarPreviewPDF()}
             </div>
 
-            {/* Columna de información */}
             <div className="plano-info-detalle">
               <div className="plano-header">
                 <h1>{plano.titulo}</h1>
@@ -221,97 +365,6 @@ const PlanoDetalle = () => {
               </div>
             </div>
           </div>
-
-          {/* Tabs de información adicional */}
-          <div className="plano-tabs">
-            <div className="tabs-nav">
-              <button
-                className={`tab-btn ${tabActiva === 'descripcion' ? 'active' : ''}`}
-                onClick={() => setTabActiva('descripcion')}
-              >
-                Descripción Detallada
-              </button>
-              <button
-                className={`tab-btn ${tabActiva === 'especificaciones' ? 'active' : ''}`}
-                onClick={() => setTabActiva('especificaciones')}
-              >
-                Especificaciones
-              </button>
-              <button
-                className={`tab-btn ${tabActiva === 'requisitos' ? 'active' : ''}`}
-                onClick={() => setTabActiva('requisitos')}
-              >
-                Requisitos
-              </button>
-              <button
-                className={`tab-btn ${tabActiva === 'contenido' ? 'active' : ''}`}
-                onClick={() => setTabActiva('contenido')}
-              >
-                Contenido del Paquete
-              </button>
-            </div>
-
-            <div className="tab-content active">
-              {tabActiva === 'descripcion' && (
-                <div>
-                  <h3>Descripción Detallada</h3>
-                  <p>{plano.descripcion_detallada || plano.descripcion}</p>
-                  <p>Este plano ha sido diseñado con precisión para garantizar resultados óptimos en tu proyecto de mecanizado CNC.</p>
-                </div>
-              )}
-
-              {tabActiva === 'especificaciones' && (
-                <div>
-                  <h3>Especificaciones Técnicas</h3>
-                  <div className="especificaciones-grid">
-                    <div className="spec-item">
-                      <strong>Dimensiones:</strong>
-                      <span>{plano.dimensiones || 'Según diseño'}</span>
-                    </div>
-                    <div className="spec-item">
-                      <strong>Material recomendado:</strong>
-                      <span>{plano.material_recomendado || 'Aluminio, Acero'}</span>
-                    </div>
-                    <div className="spec-item">
-                      <strong>Tolerancias:</strong>
-                      <span>{plano.tolerancias || '±0.1mm'}</span>
-                    </div>
-                    <div className="spec-item">
-                      <strong>Acabado superficial:</strong>
-                      <span>{plano.acabado_superficial || 'Ra 3.2'}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {tabActiva === 'requisitos' && (
-                <div>
-                  <h3>Requisitos del Sistema</h3>
-                  <ul>
-                    <li>Máquina CNC tipo {plano.tipo_maquina}</li>
-                    <li>Software CAM compatible</li>
-                    <li>Herramientas: {plano.herramientas_requeridas || 'Fresas estándar'}</li>
-                    <li>Experiencia: Nivel {formatearDificultad(plano.dificultad)}</li>
-                    <li>Tiempo estimado: {plano.tiempo_estimado || '2-4 horas'}</li>
-                  </ul>
-                </div>
-              )}
-
-              {tabActiva === 'contenido' && (
-                <div>
-                  <h3>Contenido del Paquete</h3>
-                  <ul>
-                    <li>Archivo PDF con planos técnicos ({plano.total_paginas || 1} páginas)</li>
-                    <li>Código G optimizado (si aplica)</li>
-                    <li>Lista de herramientas requeridas</li>
-                    <li>Instrucciones de mecanizado paso a paso</li>
-                    <li>Notas técnicas y recomendaciones</li>
-                    <li>Soporte técnico por 30 días</li>
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </section>
 
@@ -320,6 +373,31 @@ const PlanoDetalle = () => {
       <WhatsAppButton
         phoneNumber="573194283570"
         message={`Hola, estoy interesado en el plano: ${plano.titulo}`}
+      />
+    </div>
+  );
+};
+
+const PDFPage = ({ previewData, paginaActual, paginaReal, planoTitulo }) => {
+  if (!previewData || !previewData.previewUrl) {
+    return (
+      <div className="pdf-placeholder">
+        <i className="fas fa-file-pdf"></i>
+        <p>Página {paginaReal}</p>
+        <small>Compra el plano para ver el contenido completo</small>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pdf-page-container">
+      <iframe
+        src={previewData.previewUrl}
+        title={`${planoTitulo} - Página ${paginaReal}`}
+        className="pdf-frame"
+        width="100%"
+        height="600px"
+        style={{ border: 'none' }}
       />
     </div>
   );

@@ -32,6 +32,8 @@ function App() {
          <Route path="/admin" element={<Dashboard />} />
          <Route path="/planos" element={<Planos />} />
          <Route path="/plano/:id" element={<PlanoDetalle />} />
+      
+
 
          <Route path="/*" element={<NotFound />} />
 

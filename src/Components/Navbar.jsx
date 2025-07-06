@@ -143,13 +143,13 @@ const Navbar = () => {
             >
               Nosotros
             </Link>
-            <Link 
+            {/*<Link 
               to="/blog" 
               className={`mobile-nav-link ${isActiveRoute('/servicios') ? 'active' : ''}`}
               onClick={closeMenu}
             >
-              Blog
-            </Link>
+              Videos
+            </Link>*/}
             <Link 
               to="/planos" 
               className={`mobile-nav-link ${isActiveRoute('/servicios') ? 'active' : ''}`}

@@ -49,7 +49,7 @@ const Footer = () => {
               <ul>
                 <li><Link to={'/tienda'}>Productos CNC</Link></li>
                 <li><Link to={'/planos'}>Planos</Link></li>
-                <li><Link to={'/blog'}>Videos</Link></li>
+                {/*<li><Link to={'/blog'}>Videos</Link></li>*/}
                 <li><Link to={"/contactenos"}>Consultoría</Link></li>
               </ul>
             </div>

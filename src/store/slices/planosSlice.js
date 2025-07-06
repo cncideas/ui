@@ -1,6 +1,15 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
-const API_BASE_URL = 'http://localhost:3000';
+// ✅ Usar variable de entorno con fallback
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
+// También puedes crear una función helper para logging en desarrollo
+const isDevelopment = import.meta.env.MODE === 'development';
+const logInfo = (message, data) => {
+  if (isDevelopment) {
+    console.log(message, data);
+  }
+};
 
 // Thunk para obtener todos los planos con paginación
 export const fetchPlanos = createAsyncThunk(

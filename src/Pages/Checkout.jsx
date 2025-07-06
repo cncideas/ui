@@ -4,7 +4,7 @@ import "../assets/styles/Checkout.css"
 import Navbar from '../Components/Navbar';
 
 const Checkout = () => {
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
   const navigate = useNavigate();
   const [carrito, setCarrito] = useState([]);

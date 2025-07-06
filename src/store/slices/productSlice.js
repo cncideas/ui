@@ -2,8 +2,16 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 // URL base de tu API
-const API_BASE_URL = 'http://localhost:3000';
+// ✅ Usar variable de entorno con fallback
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
+// También puedes crear una función helper para logging en desarrollo
+const isDevelopment = import.meta.env.MODE === 'development';
+const logInfo = (message, data) => {
+  if (isDevelopment) {
+    console.log(message, data);
+  }
+};
 // Thunks para operaciones asíncronas
 export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',

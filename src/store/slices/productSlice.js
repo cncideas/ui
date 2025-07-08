@@ -124,7 +124,7 @@ export const fetchProductById = createAsyncThunk(
   'products/fetchProductById',
   async (id, { rejectWithValue }) => {
     try {
-      const res = await fetch(`http://localhost:3000/productos/${id}`);
+      const res = await fetch(`${API_BASE_URL}/productos/${id}`);
       if (!res.ok) throw new Error('Error al obtener producto');
       const data = await res.json();
       return data; // Ya viene con la imagen en formato base64

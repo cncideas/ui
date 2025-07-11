@@ -1,5 +1,7 @@
 // src/store/slices/productsSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+// Agregar esta importación en tu productSlice.js
+import { createSelector } from '@reduxjs/toolkit';
 
 // URL base de tu API
 // ✅ Usar variable de entorno con fallback
@@ -264,13 +266,27 @@ export const selectCurrentPage = (state) => state.products.currentPage;
 export const selectCurrentProduct = (state) => state.products.currentProduct;
 
 // Selector para productos filtrados
-export const selectFilteredProducts = (state) => {
-  const { items, searchTerm, selectedCategory } = state.products;
-
-  return items.filter(product => {
-    const matchesSearch = product.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' ||
-      (product.categoria?._id === selectedCategory || product.categoria === selectedCategory);
-    return matchesSearch && matchesCategory;
-  });
-};
+// Reemplaza tu selector selectFilteredProducts con este:
+export const selectFilteredProducts = createSelector(
+  [
+    (state) => state.products.items,
+    (state) => state.products.searchTerm,
+    (state) => state.products.selectedCategory
+  ],
+  (items, searchTerm, selectedCategory) => {
+    if (!items || items.length === 0) return [];
+    
+    return items.filter(product => {
+      // Filtro por término de búsqueda
+      const matchesSearch = !searchTerm || 
+        product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.descripcion.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Filtro por categoría
+      const matchesCategory = selectedCategory === 'all' || 
+        (product.categoria && product.categoria._id === selectedCategory);
+      
+      return matchesSearch && matchesCategory;
+    });
+  }
+);

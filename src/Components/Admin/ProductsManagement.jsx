@@ -47,13 +47,55 @@ const ProductsManagement = () => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // Paginación calculada
+  // Paginación calculada - MEMOIZADA para evitar re-renders
   const itemsPerPage = 10;
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = useMemo(() => {
     return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredProducts, startIndex, itemsPerPage]);
+
+  // Función auxiliar para obtener el nombre de la categoría de forma segura
+  const getCategoryName = (categoria) => {
+    if (!categoria) return 'Sin categoría';
+    return typeof categoria === 'object' ? categoria.nombre : categoria;
+  };
+
+  // Función auxiliar para parsear características de forma segura
+  const parseCharacteristics = (caracteristicas) => {
+    if (!caracteristicas || !Array.isArray(caracteristicas)) return [];
+    
+    try {
+      return caracteristicas.map(item => {
+        if (typeof item === 'string') {
+          // Intenta parsear el JSON anidado
+          try {
+            const parsed = JSON.parse(item);
+            if (Array.isArray(parsed)) {
+              return parsed.map(subItem => {
+                if (typeof subItem === 'string') {
+                  try {
+                    const subParsed = JSON.parse(subItem);
+                    return Array.isArray(subParsed) ? subParsed : [subParsed];
+                  } catch {
+                    return subItem;
+                  }
+                }
+                return subItem;
+              }).flat();
+            }
+            return parsed;
+          } catch {
+            return item;
+          }
+        }
+        return item;
+      }).flat();
+    } catch (error) {
+      console.warn('Error parsing characteristics:', error);
+      return [];
+    }
+  };
 
   // Handlers
   const handleSearchChange = (e) => {
@@ -114,6 +156,8 @@ const ProductsManagement = () => {
   const ProductViewModal = ({ isOpen, onClose, product }) => {
     if (!isOpen || !product) return null;
 
+    const characteristics = parseCharacteristics(product.caracteristicas);
+
     return (
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal-content product-view-modal" onClick={(e) => e.stopPropagation()}>
@@ -129,7 +173,7 @@ const ProductsManagement = () => {
               {/* Imagen del producto */}
               <div className="product-image-section">
                 <img 
-                  src={product.imagen} 
+                  src={product.imagen || '/placeholder-image.jpg'} 
                   alt={product.nombre}
                   className="product-detail-image"
                   style={{ 
@@ -157,7 +201,7 @@ const ProductsManagement = () => {
 
                 <div className="info-row">
                   <span className="info-label">Precio:</span>
-                  <span className="info-value price">${product.precio}</span>
+                  <span className="info-value price">${product.precio?.toLocaleString()}</span>
                 </div>
 
                 <div className="info-row">
@@ -173,16 +217,16 @@ const ProductsManagement = () => {
                 <div className="info-row">
                   <span className="info-label">Categoría:</span>
                   <span className="info-value">
-                    {typeof product.categoria === 'object' ? product.categoria.nombre : product.categoria}
+                    {getCategoryName(product.categoria)}
                   </span>
                 </div>
 
                 {/* Características */}
-                {product.caracteristicas && product.caracteristicas.length > 0 && (
+                {characteristics.length > 0 && (
                   <div className="info-row">
                     <span className="info-label">Características:</span>
                     <div className="caracteristicas-list">
-                      {product.caracteristicas.map((caracteristica, index) => (
+                      {characteristics.map((caracteristica, index) => (
                         <span key={index} className="caracteristica-tag">
                           {caracteristica}
                         </span>
@@ -247,7 +291,7 @@ const ProductsManagement = () => {
             onChange={handleCategoryChange}
           >
             <option value="all">Todas las categorías</option>
-            {categories.map(category => (
+            {categories?.map(category => (
               <option key={category._id} value={category._id}>
                 {category.nombre}
               </option>
@@ -291,7 +335,7 @@ const ProductsManagement = () => {
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <img 
-                        src={product.imagen} 
+                        src={product.imagen || '/placeholder-image.jpg'} 
                         alt={product.nombre}
                         className="product-image"
                         style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
@@ -299,13 +343,13 @@ const ProductsManagement = () => {
                       <div className="product-info">
                         <h4 className="product-name">{product.nombre}</h4>
                         <span className="product-category">
-                          {typeof product.categoria === 'object' ? product.categoria.nombre : product.categoria}
+                          {getCategoryName(product.categoria)}
                         </span>
                       </div>
                     </div>
                   </td>
                   <td>
-                    <span className="product-price">${product.precio}</span>
+                    <span className="product-price">${product.precio?.toLocaleString()}</span>
                   </td>
                   <td>
                     <span className={`stock-badge ${

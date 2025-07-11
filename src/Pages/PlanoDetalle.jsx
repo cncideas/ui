@@ -15,6 +15,74 @@ import Navbar from '../Components/Navbar';
 import WhatsAppButton from '../Components/WhatsAppButton';
 import Footer from '../Components/Footer';
 
+// Modal Component
+const ModalDescarga = ({ isOpen, onClose, plano, onComprar }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>
+            <i className="fas fa-lock"></i>
+            Descarga Completa Bloqueada
+          </h3>
+          <button className="modal-close" onClick={onClose}>
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div className="modal-body">
+          <div className="modal-icon">
+            <i className="fas fa-file-pdf"></i>
+          </div>
+          <h4>¿Quieres descargar el plano completo?</h4>
+          <p>
+            La vista previa te permite ver solo algunas páginas del plano.
+            Para descargar el archivo completo con todas las páginas y detalles,
+            necesitas comprarlo.
+          </p>
+          
+          <div className="modal-plano-info">
+            <h5>{plano?.titulo}</h5>
+            <div className="modal-precio">
+              <span className="precio-modal">${plano?.precio}</span>
+            </div>
+            <div className="modal-features">
+              <div className="feature-item">
+                <i className="fas fa-check"></i>
+                <span>Descarga inmediata</span>
+              </div>
+              <div className="feature-item">
+                <i className="fas fa-check"></i>
+                <span>Todas las páginas incluidas</span>
+              </div>
+              <div className="feature-item">
+                <i className="fas fa-check"></i>
+                <span>Soporte técnico</span>
+              </div>
+              <div className="feature-item">
+                <i className="fas fa-check"></i>
+                <span>Actualizaciones gratuitas</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onClose}>
+            Continuar viendo preview
+          </button>
+          <button className="btn btn-primary" onClick={onComprar}>
+            <i className="fas fa-shopping-cart"></i>
+            Comprar ahora
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PlanoDetalle = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -29,6 +97,7 @@ const PlanoDetalle = () => {
   const [errorPreview, setErrorPreview] = useState(null);
   const [tabActiva, setTabActiva] = useState('descripcion');
   const [paginaActual, setPaginaActual] = useState(1);
+  const [modalDescargaOpen, setModalDescargaOpen] = useState(false);
 
   // Calcular si tiene archivo de forma estable
   const tieneArchivo = useMemo(() => {
@@ -80,54 +149,61 @@ const PlanoDetalle = () => {
     }, 100);
   };
 
-const agregarAlCarrito = () => {
-  // Usar el mismo localStorage que productos
-  const carrito = JSON.parse(localStorage.getItem('carrito') || '[]');
-  const existente = carrito.find(item => item._id === plano._id);
+  const manejarDescarga = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setModalDescargaOpen(true);
+  };
 
-  if (existente) {
-    alert('Este plano ya está en tu carrito');
-    return;
-  }
+  const agregarAlCarrito = () => {
+    // Usar el mismo localStorage que productos
+    const carrito = JSON.parse(localStorage.getItem('carrito') || '[]');
+    const existente = carrito.find(item => item._id === plano._id);
 
-  carrito.push({
-    _id: plano._id,
-    nombre: plano.titulo, // Cambiar 'titulo' por 'nombre' para consistencia
-    precio: plano.precio,
-    imagen: plano.preview_imagen, // Cambiar 'preview_imagen' por 'imagen'
-    cantidad: 1, // Agregar cantidad para consistencia
-    tipo: 'plano' // Mantener tipo para diferenciar
-  });
+    if (existente) {
+      alert('Este plano ya está en tu carrito');
+      return;
+    }
 
-  localStorage.setItem('carrito', JSON.stringify(carrito));
-  
-  // Notificación moderna como en productos
-  const notification = document.createElement('div');
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
-    padding: 15px 25px;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    z-index: 10000;
-    font-weight: 600;
-    animation: slideIn 0.5s ease-out;
-  `;
-  notification.innerHTML = `✅ ${plano.titulo} agregado al carrito`;
-  document.body.appendChild(notification);
-  
-  setTimeout(() => {
-    notification.remove();
-  }, 3000);
-};
+    carrito.push({
+      _id: plano._id,
+      nombre: plano.titulo,
+      precio: plano.precio,
+      imagen: plano.preview_imagen,
+      cantidad: 1,
+      tipo: 'plano'
+    });
 
-const comprarAhora = () => {
-  agregarAlCarrito();
-  setTimeout(() => navigate('/carrito'), 500); // Agregar delay como en productos
-};
+    localStorage.setItem('carrito', JSON.stringify(carrito));
+    
+    // Notificación moderna
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      color: white;
+      padding: 15px 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      z-index: 10000;
+      font-weight: 600;
+      animation: slideIn 0.5s ease-out;
+    `;
+    notification.innerHTML = `✅ ${plano.titulo} agregado al carrito`;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+  };
+
+  const comprarAhora = () => {
+    agregarAlCarrito();
+    setModalDescargaOpen(false);
+    setTimeout(() => navigate('/carrito'), 500);
+  };
 
   const formatearDificultad = (dificultad) => {
     const niveles = {
@@ -214,23 +290,22 @@ const comprarAhora = () => {
     return (
       <div className="pdf-preview-container">
         <div className="pdf-controls">
-          <button 
-            onClick={() => cambiarPagina(paginaActual - 1)}
-            disabled={paginaActual === 1}
-            className="btn btn-sm"
-          >
-            <i className="fas fa-chevron-left"></i>
-          </button>
-          <span className="pagina-info">
-            Página {paginaReal} de {totalPaginas} (Vista previa)
-          </span>
-          <button 
-            onClick={() => cambiarPagina(paginaActual + 1)}
-            disabled={paginaActual === paginasDisponibles.length}
-            className="btn btn-sm"
-          >
-            <i className="fas fa-chevron-right"></i>
-          </button>
+          <div className="pdf-controls-left">
+          
+            <span className="pagina-info">
+              Página {paginaReal} de {totalPaginas} (Vista previa)
+            </span>
+           
+          </div>
+          
+          <div className="pdf-controls-right" >
+            <button 
+              onClick={manejarDescarga}
+              className="btn btn-sm btn-download"
+              title="Descargar PDF completo"
+            ><img width="25" height="25" src="https://img.icons8.com/color/48/download--v1.png" alt="download--v1"/>
+            </button>
+          </div>
         </div>
         
         <div className="pdf-viewer">
@@ -368,6 +443,13 @@ const comprarAhora = () => {
         </div>
       </section>
 
+      <ModalDescarga 
+        isOpen={modalDescargaOpen}
+        onClose={() => setModalDescargaOpen(false)}
+        plano={plano}
+        onComprar={comprarAhora}
+      />
+
       <Footer />
       
       <WhatsAppButton
@@ -382,7 +464,6 @@ const PDFPage = ({ previewData, paginaActual, paginaReal, planoTitulo }) => {
   if (!previewData || !previewData.previewUrl) {
     return (
       <div className="pdf-placeholder">
-        <i className="fas fa-file-pdf"></i>
         <p>Página {paginaReal}</p>
         <small>Compra el plano para ver el contenido completo</small>
       </div>
@@ -392,8 +473,8 @@ const PDFPage = ({ previewData, paginaActual, paginaReal, planoTitulo }) => {
   return (
     <div className="pdf-page-container">
       <iframe
-        src={previewData.previewUrl}
-        title={`${planoTitulo} - Página ${paginaReal}`}
+        src={`${previewData.previewUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+        title={`${planoTitulo} - Página ${paginaReal}` }
         className="pdf-frame"
         width="100%"
         height="600px"

@@ -634,3 +634,531 @@
   background-color: #f8f9fa;
   min-height: 100vh;
 }
+/* ESTILOS FALTANTES PARA PRODUCTO DETALLE */
+
+/* Contenedor principal de imagen con posición relativa para botones */
+.imagen-principal-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Botón de zoom superpuesto */
+.zoom-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  font-size: 1.2rem;
+}
+
+.zoom-btn:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: scale(1.1);
+}
+
+/* Contador de imágenes */
+.imagen-contador {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 10;
+}
+
+/* Botones de navegación de imagen principal */
+.nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.nav-btn:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.nav-btn-prev {
+  left: 15px;
+}
+
+.nav-btn-next {
+  right: 15px;
+}
+
+/* Contenedor de miniaturas */
+.imagenes-miniatura {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 10px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #007bff #f8f9fa;
+}
+
+.imagenes-miniatura::-webkit-scrollbar {
+  height: 6px;
+}
+
+.imagenes-miniatura::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 3px;
+}
+
+.imagenes-miniatura::-webkit-scrollbar-thumb {
+  background: #007bff;
+  border-radius: 3px;
+}
+
+.imagenes-miniatura::-webkit-scrollbar-thumb:hover {
+  background: #0056b3;
+}
+
+/* Miniaturas individuales */
+.miniatura {
+  min-width: 80px;
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  position: relative;
+}
+
+.miniatura:hover {
+  transform: scale(1.05);
+  border-color: #007bff;
+}
+
+.miniatura.activa {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.3);
+}
+
+.miniatura img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.miniatura-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f5f5f5 0%, #e9ecef 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  font-size: 1.2rem;
+}
+
+/* Placeholder para imagen principal sin imágenes */
+.imagen-placeholder-principal {
+  width: 100%;
+  height: 400px;
+  background: linear-gradient(135deg, #f5f5f5 0%, #e9ecef 100%);
+  border: 2px dashed #007bff;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.imagen-placeholder-principal div {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.imagen-placeholder-principal p:first-child {
+  font-size: 3rem;
+  margin: 0;
+}
+
+.imagen-placeholder-principal p:last-child {
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* ESTILOS DEL MODAL DE IMAGEN */
+.modal-imagen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-imagen-container {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: scaleIn 0.3s ease-out;
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-cerrar {
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 1001;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.modal-cerrar:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.modal-imagen-content {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-imagen-content img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.modal-imagen-placeholder {
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.modal-imagen-placeholder div {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-imagen-placeholder p:first-child {
+  font-size: 3rem;
+  margin: 0;
+}
+
+.modal-imagen-placeholder p:last-child {
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Botones de navegación del modal */
+.modal-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 1001;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.modal-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.modal-nav-prev {
+  left: 20px;
+}
+
+.modal-nav-next {
+  right: 20px;
+}
+
+/* Contador del modal */
+.modal-contador {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  z-index: 1001;
+}
+
+/* Miniaturas en el modal */
+.modal-miniaturas {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  border-radius: 25px;
+  backdrop-filter: blur(5px);
+  max-width: 80vw;
+  overflow-x: auto;
+  z-index: 1001;
+}
+
+.modal-miniaturas::-webkit-scrollbar {
+  height: 4px;
+}
+
+.modal-miniaturas::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.modal-miniaturas::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.modal-miniatura {
+  min-width: 50px;
+  width: 50px;
+  height: 50px;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  opacity: 0.7;
+}
+
+.modal-miniatura:hover {
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+.modal-miniatura.activa {
+  border-color: #007bff;
+  opacity: 1;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5);
+}
+
+.modal-miniatura img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Animación de notificación */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive para modal */
+@media (max-width: 768px) {
+  .modal-cerrar {
+    top: -40px;
+    right: -40px;
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+  
+  .modal-nav-btn {
+    width: 45px;
+    height: 45px;
+    font-size: 1.5rem;
+  }
+  
+  .modal-nav-prev {
+    left: 10px;
+  }
+  
+  .modal-nav-next {
+    right: 10px;
+  }
+  
+  .modal-miniaturas {
+    bottom: 40px;
+    max-width: 90vw;
+  }
+  
+  .modal-miniatura {
+    min-width: 40px;
+    width: 40px;
+    height: 40px;
+  }
+  
+  .modal-imagen-content img {
+    max-height: 70vh;
+  }
+}
+
+@media (max-width: 576px) {
+  .nav-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 1.2rem;
+  }
+  
+  .zoom-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+  
+  .miniatura {
+    min-width: 60px;
+    width: 60px;
+    height: 60px;
+  }
+  
+  .modal-nav-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1.3rem;
+  }
+  
+  .modal-contador {
+    bottom: 15px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  
+  .modal-miniaturas {
+    bottom: 30px;
+    padding: 8px;
+  }
+}
+
+/* Mejoras adicionales para UX */
+.imagen-principal {
+  cursor: zoom-in;
+}
+
+.imagen-principal:hover img {
+  transform: scale(1.02);
+}
+
+.modal-imagen-overlay {
+  cursor: zoom-out;
+}
+
+.modal-imagen-container {
+  cursor: default;
+}
+
+/* Estilos para focus y accesibilidad */
+.nav-btn:focus,
+.modal-nav-btn:focus,
+.modal-cerrar:focus,
+.zoom-btn:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+.miniatura:focus,
+.modal-miniatura:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}

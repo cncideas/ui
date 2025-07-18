@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { Plus, Search, Edit, Trash2, Eye, X } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   fetchProducts,
   deleteProduct,
@@ -97,6 +97,42 @@ const ProductsManagement = () => {
     }
   };
 
+  // Función para obtener la imagen principal o la primera imagen disponible
+  const getMainImage = (product) => {
+    if (!product) return '/placeholder-image.jpg';
+    
+    // Si tiene un array de imágenes, usar la primera
+    if (product.imagenes && Array.isArray(product.imagenes) && product.imagenes.length > 0) {
+      return product.imagenes[0];
+    }
+    
+    // Si tiene una imagen única (retrocompatibilidad)
+    if (product.imagen) {
+      return product.imagen;
+    }
+    
+    return '/placeholder-image.jpg';
+  };
+
+  // Función para obtener todas las imágenes del producto
+  const getAllImages = (product) => {
+    if (!product) return [];
+    
+    const images = [];
+    
+    // Si tiene un array de imágenes
+    if (product.imagenes && Array.isArray(product.imagenes)) {
+      images.push(...product.imagenes);
+    }
+    
+    // Si tiene una imagen única (retrocompatibilidad)
+    if (product.imagen && !images.includes(product.imagen)) {
+      images.push(product.imagen);
+    }
+    
+    return images.length > 0 ? images : ['/placeholder-image.jpg'];
+  };
+
   // Handlers
   const handleSearchChange = (e) => {
     dispatch(setSearchTerm(e.target.value));
@@ -152,11 +188,113 @@ const ProductsManagement = () => {
     }
   }, [error]);
 
-  // Componente modal para ver detalles del producto
+  // Componente para mostrar múltiples imágenes en la tabla
+  const ProductImagePreview = ({ product }) => {
+    const images = getAllImages(product);
+    const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+
+    if (images.length === 1) {
+      return (
+        <img 
+          src={images[0]} 
+          alt={product.nombre}
+          className="product-image"
+          style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
+        />
+      );
+    }
+
+    return (
+      <div className="product-image-carousel" style={{ position: 'relative', width: '50px', height: '50px' }}>
+        <img 
+          src={images[currentImageIndex]} 
+          alt={`${product.nombre} - ${currentImageIndex + 1}`}
+          className="product-image"
+          style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
+        />
+        {images.length > 1 && (
+          <>
+            <button
+              className="image-nav-btn prev"
+              onClick={() => setCurrentImageIndex((prev) => prev === 0 ? images.length - 1 : prev - 1)}
+              style={{
+                position: 'absolute',
+                left: '2px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'rgba(0,0,0,0.5)',
+                border: 'none',
+                color: 'white',
+                borderRadius: '50%',
+                width: '16px',
+                height: '16px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <ChevronLeft size={10} />
+            </button>
+            <button
+              className="image-nav-btn next"
+              onClick={() => setCurrentImageIndex((prev) => prev === images.length - 1 ? 0 : prev + 1)}
+              style={{
+                position: 'absolute',
+                right: '2px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'rgba(0,0,0,0.5)',
+                border: 'none',
+                color: 'white',
+                borderRadius: '50%',
+                width: '16px',
+                height: '16px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <ChevronRight size={10} />
+            </button>
+            <div 
+              className="image-counter"
+              style={{
+                position: 'absolute',
+                bottom: '2px',
+                right: '2px',
+                background: 'rgba(0,0,0,0.7)',
+                color: 'white',
+                fontSize: '8px',
+                padding: '1px 3px',
+                borderRadius: '2px'
+              }}
+            >
+              {currentImageIndex + 1}/{images.length}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  // Componente modal para ver detalles del producto con galería de imágenes
   const ProductViewModal = ({ isOpen, onClose, product }) => {
+    const [selectedImageIndex, setSelectedImageIndex] = React.useState(0);
+
     if (!isOpen || !product) return null;
 
     const characteristics = parseCharacteristics(product.caracteristicas);
+    const images = getAllImages(product);
+
+    const nextImage = () => {
+      setSelectedImageIndex((prev) => prev === images.length - 1 ? 0 : prev + 1);
+    };
+
+    const prevImage = () => {
+      setSelectedImageIndex((prev) => prev === 0 ? images.length - 1 : prev - 1);
+    };
 
     return (
       <div className="modal-overlay" onClick={onClose}>
@@ -170,21 +308,111 @@ const ProductsManagement = () => {
           
           <div className="modal-body">
             <div className="product-details">
-              {/* Imagen del producto */}
-              <div className="product-image-section">
-                <img 
-                  src={product.imagen || '/placeholder-image.jpg'} 
-                  alt={product.nombre}
-                  className="product-detail-image"
-                  style={{ 
-                    width: '100%', 
-                    maxWidth: '300px', 
-                    height: '250px', 
-                    objectFit: 'cover', 
-                    borderRadius: '8px',
-                    marginBottom: '20px'
-                  }}
-                />
+              {/* Galería de imágenes del producto */}
+              <div className="product-image-gallery">
+                <div className="main-image-container" style={{ position: 'relative', marginBottom: '16px' }}>
+                  <img 
+                    src={images[selectedImageIndex]} 
+                    alt={`${product.nombre} - ${selectedImageIndex + 1}`}
+                    className="product-detail-image"
+                    style={{ 
+                      width: '100%', 
+                      maxWidth: '400px', 
+                      height: '300px', 
+                      objectFit: 'cover', 
+                      borderRadius: '8px'
+                    }}
+                  />
+                  
+                  {images.length > 1 && (
+                    <>
+                      <button
+                        className="gallery-nav-btn prev"
+                        onClick={prevImage}
+                        style={{
+                          position: 'absolute',
+                          left: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'rgba(0,0,0,0.7)',
+                          border: 'none',
+                          color: 'white',
+                          borderRadius: '50%',
+                          width: '40px',
+                          height: '40px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      <button
+                        className="gallery-nav-btn next"
+                        onClick={nextImage}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'rgba(0,0,0,0.7)',
+                          border: 'none',
+                          color: 'white',
+                          borderRadius: '50%',
+                          width: '40px',
+                          height: '40px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                      
+                      <div 
+                        className="image-counter-large"
+                        style={{
+                          position: 'absolute',
+                          bottom: '10px',
+                          right: '10px',
+                          background: 'rgba(0,0,0,0.7)',
+                          color: 'white',
+                          fontSize: '12px',
+                          padding: '4px 8px',
+                          borderRadius: '4px'
+                        }}
+                      >
+                        {selectedImageIndex + 1} de {images.length}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Miniaturas de imágenes */}
+                {images.length > 1 && (
+                  <div className="image-thumbnails" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
+                    {images.map((image, index) => (
+                      <img
+                        key={index}
+                        src={image}
+                        alt={`${product.nombre} miniatura ${index + 1}`}
+                        className={`thumbnail ${index === selectedImageIndex ? 'active' : ''}`}
+                        onClick={() => setSelectedImageIndex(index)}
+                        style={{
+                          width: '60px',
+                          height: '60px',
+                          objectFit: 'cover',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          border: index === selectedImageIndex ? '2px solid #2563eb' : '2px solid transparent',
+                          opacity: index === selectedImageIndex ? 1 : 0.7
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Información básica */}
@@ -219,6 +447,11 @@ const ProductsManagement = () => {
                   <span className="info-value">
                     {getCategoryName(product.categoria)}
                   </span>
+                </div>
+
+                <div className="info-row">
+                  <span className="info-label">Imágenes:</span>
+                  <span className="info-value">{images.length} imagen{images.length !== 1 ? 'es' : ''}</span>
                 </div>
 
                 {/* Características */}
@@ -326,70 +559,74 @@ const ProductsManagement = () => {
                 <th>Producto</th>
                 <th>Precio</th>
                 <th>Stock</th>
+                <th>Imágenes</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedProducts.map(product => (
-                <tr key={product._id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <img 
-                        src={product.imagen || '/placeholder-image.jpg'} 
-                        alt={product.nombre}
-                        className="product-image"
-                        style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
-                      />
-                      <div className="product-info">
-                        <h4 className="product-name">{product.nombre}</h4>
-                        <span className="product-category">
-                          {getCategoryName(product.categoria)}
-                        </span>
+              {paginatedProducts.map(product => {
+                const images = getAllImages(product);
+                return (
+                  <tr key={product._id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <ProductImagePreview product={product} />
+                        <div className="product-info">
+                          <h4 className="product-name">{product.nombre}</h4>
+                          <span className="product-category">
+                            {getCategoryName(product.categoria)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="product-price">${product.precio?.toLocaleString()}</span>
-                  </td>
-                  <td>
-                    <span className={`stock-badge ${
-                      product.cantidad > 20 ? 'stock-high' : 
-                      product.cantidad > 5 ? 'stock-medium' : 'stock-low'
-                    }`}>
-                      {product.cantidad} unidades
-                    </span>
-                  </td>
-                  
-                  <td>
-                    <div className="actions-container" style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        className="action-btn view-btn" 
-                        title="Ver detalles"
-                        onClick={() => handleViewProduct(product)}
-                        disabled={loading}
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button 
-                        className="action-btn edit-btn" 
-                        title="Editar"
-                        onClick={() => handleEditProduct(product)}
-                        disabled={loading}
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button 
-                        className="action-btn delete-btn" 
-                        title="Eliminar"
-                        onClick={() => handleDeleteProduct(product._id)}
-                        disabled={loading}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td>
+                      <span className="product-price">${product.precio?.toLocaleString()}</span>
+                    </td>
+                    <td>
+                      <span className={`stock-badge ${
+                        product.cantidad > 20 ? 'stock-high' : 
+                        product.cantidad > 5 ? 'stock-medium' : 'stock-low'
+                      }`}>
+                        {product.cantidad} unidades
+                      </span>
+                    </td>
+                    <td>
+                      <span className="images-count">
+                        {images.length} imagen{images.length !== 1 ? 'es' : ''}
+                      </span>
+                    </td>
+                    
+                    <td>
+                      <div className="actions-container" style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          className="action-btn view-btn" 
+                          title="Ver detalles"
+                          onClick={() => handleViewProduct(product)}
+                          disabled={loading}
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button 
+                          className="action-btn edit-btn" 
+                          title="Editar"
+                          onClick={() => handleEditProduct(product)}
+                          disabled={loading}
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button 
+                          className="action-btn delete-btn" 
+                          title="Eliminar"
+                          onClick={() => handleDeleteProduct(product._id)}
+                          disabled={loading}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -444,3 +681,4 @@ const ProductsManagement = () => {
 };
 
 export default ProductsManagement;
+

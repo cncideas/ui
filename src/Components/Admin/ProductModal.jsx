@@ -1,134 +1,134 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { X, Upload, Trash2, Plus, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { createProduct, updateProduct, selectProductsLoading, selectProductsError } from '../../store/slices/productSlice';
-import "../../assets/styles/Admin/ProductModal.css"
+import {
+  createProduct,
+  updateProduct,
+  addProductImages,
+  removeProductImage,
+  selectProductsLoading,
+  selectProductsError,
+} from '../../store/slices/productSlice';
 
-const ProductModal = ({ 
-  isOpen, 
-  onClose, 
-  product = null, 
-  categories = [] 
-}) => {
+const ProductModal = ({ isOpen, onClose, product = null, categories = [] }) => {
   const dispatch = useAppDispatch();
-  const isLoading = useAppSelector(selectProductsLoading);
-  const apiError = useAppSelector(selectProductsError);
-
+  const loading = useAppSelector(selectProductsLoading);
+  const error = useAppSelector(selectProductsError);
+  
+  const isEditing = !!product;
+  
+  // Estado del formulario
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
     precio: '',
-    imagen: null,
+    cantidad: '',
     categoria: '',
-    caracteristicas: [''],
-    cantidad: ''
+    caracteristicas: []
   });
 
-  const [errors, setErrors] = useState({});
-  const [imagePreview, setImagePreview] = useState(null);
+  // Estado para las imágenes
+  const [existingImages, setExistingImages] = useState([]);
+  const [newImages, setNewImages] = useState([]);
+  const [imagesToRemove, setImagesToRemove] = useState([]);
+  const [previewImages, setPreviewImages] = useState([]);
+  
+  // Estado para características
+  const [currentCharacteristic, setCurrentCharacteristic] = useState('');
+  
+  // Estado para la galería
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showImageGallery, setShowImageGallery] = useState(false);
 
-  // Inicializar formulario cuando se abre el modal
+  // Inicializar datos del formulario
   useEffect(() => {
     if (isOpen) {
-      if (product) {
-        // Modo edición - extraer el ID de la categoría correctamente
-        const categoriaId = typeof product.categoria === 'object' && product.categoria._id 
-          ? product.categoria._id 
-          : product.categoria || '';
-
+      if (isEditing && product) {
         setFormData({
           nombre: product.nombre || '',
           descripcion: product.descripcion || '',
-          precio: product.precio?.toString() || '',
-          imagen: null,
-          categoria: categoriaId,
-          caracteristicas: product.caracteristicas?.length > 0 ? product.caracteristicas : [''],
-          cantidad: product.cantidad?.toString() || ''
+          precio: product.precio || '',
+          cantidad: product.cantidad || '',
+          categoria: product.categoria?._id || product.categoria || '',
+          caracteristicas: parseCharacteristics(product.caracteristicas) || []
         });
-        setImagePreview(product.imagen || null);
+        
+        // Configurar imágenes existentes
+        const images = getAllImages(product);
+        setExistingImages(images);
+        setSelectedImageIndex(0);
       } else {
-        // Modo crear
+        // Reset para nuevo producto
         setFormData({
           nombre: '',
           descripcion: '',
           precio: '',
-          imagen: null,
+          cantidad: '',
           categoria: '',
-          caracteristicas: [''],
-          cantidad: ''
+          caracteristicas: []
         });
-        setImagePreview(null);
+        setExistingImages([]);
       }
-      setErrors({});
+      
+      // Reset estados de imágenes
+      setNewImages([]);
+      setImagesToRemove([]);
+      setPreviewImages([]);
+      setCurrentCharacteristic('');
+      setShowImageGallery(false);
     }
-  }, [isOpen, product]);
+  }, [isOpen, isEditing, product]);
 
-  // Mostrar errores de la API
-  useEffect(() => {
-    if (apiError) {
-      setErrors(prev => ({
-        ...prev,
-        submit: apiError
-      }));
+  // Función para obtener todas las imágenes del producto
+  const getAllImages = (product) => {
+    if (!product) return [];
+    
+    const images = [];
+    
+    if (product.imagenes && Array.isArray(product.imagenes)) {
+      images.push(...product.imagenes);
     }
-  }, [apiError]);
-
-  // Validaciones
-  const validateForm = () => {
-    const newErrors = {};
-
-    // Nombre
-    if (!formData.nombre.trim()) {
-      newErrors.nombre = 'El nombre es requerido';
-    } else if (formData.nombre.trim().length < 3) {
-      newErrors.nombre = 'El nombre debe tener al menos 3 caracteres';
+    
+    if (product.imagen && !images.includes(product.imagen)) {
+      images.push(product.imagen);
     }
+    
+    return images.length > 0 ? images : [];
+  };
 
-    // Descripción
-    if (!formData.descripcion.trim()) {
-      newErrors.descripcion = 'La descripción es requerida';
-    } else if (formData.descripcion.trim().length < 10) {
-      newErrors.descripcion = 'La descripción debe tener al menos 10 caracteres';
+  // Función para parsear características
+  const parseCharacteristics = (caracteristicas) => {
+    if (!caracteristicas || !Array.isArray(caracteristicas)) return [];
+    
+    try {
+      return caracteristicas.map(item => {
+        if (typeof item === 'string') {
+          try {
+            const parsed = JSON.parse(item);
+            if (Array.isArray(parsed)) {
+              return parsed.map(subItem => {
+                if (typeof subItem === 'string') {
+                  try {
+                    const subParsed = JSON.parse(subItem);
+                    return Array.isArray(subParsed) ? subParsed : [subParsed];
+                  } catch {
+                    return subItem;
+                  }
+                }
+                return subItem;
+              }).flat();
+            }
+            return parsed;
+          } catch {
+            return item;
+          }
+        }
+        return item;
+      }).flat();
+    } catch (error) {
+      console.warn('Error parsing characteristics:', error);
+      return [];
     }
-
-    // Precio
-    if (!formData.precio) {
-      newErrors.precio = 'El precio es requerido';
-    } else {
-      const precio = parseFloat(formData.precio);
-      if (isNaN(precio) || precio <= 0) {
-        newErrors.precio = 'El precio debe ser un número mayor a 0';
-      }
-    }
-
-    // Categoría
-    if (!formData.categoria) {
-      newErrors.categoria = 'La categoría es requerida';
-    }
-
-    // Cantidad
-    if (!formData.cantidad) {
-      newErrors.cantidad = 'La cantidad es requerida';
-    } else {
-      const cantidad = parseInt(formData.cantidad);
-      if (isNaN(cantidad) || cantidad < 0) {
-        newErrors.cantidad = 'La cantidad debe ser un número mayor o igual a 0';
-      }
-    }
-
-    // Características (al menos una no vacía)
-    const caracteristicasValidas = formData.caracteristicas.filter(c => c.trim());
-    if (caracteristicasValidas.length === 0) {
-      newErrors.caracteristicas = 'Debe agregar al menos una característica';
-    }
-
-    // Imagen (solo requerida en modo crear)
-    if (!product && !formData.imagen) {
-      newErrors.imagen = 'La imagen es requerida';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   // Manejar cambios en inputs
@@ -138,393 +138,518 @@ const ProductModal = ({
       ...prev,
       [name]: value
     }));
-
-    // Limpiar error del campo al empezar a escribir
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
   };
 
-  // Manejar subida de imagen
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validar tipo de archivo
-      if (!file.type.startsWith('image/')) {
-        setErrors(prev => ({
-          ...prev,
-          imagen: 'Debe seleccionar un archivo de imagen válido'
-        }));
-        return;
+  // Manejar selección de nuevas imágenes
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    // Crear previews
+    const newPreviews = [];
+    const newFileArray = [];
+
+    files.forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          newPreviews.push({
+            file: file,
+            preview: e.target.result,
+            name: file.name
+          });
+          
+          if (newPreviews.length === files.length) {
+            setPreviewImages(prev => [...prev, ...newPreviews]);
+            setNewImages(prev => [...prev, ...files]);
+          }
+        };
+        reader.readAsDataURL(file);
+        newFileArray.push(file);
       }
+    });
 
-      // Validar tamaño (máximo 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({
-          ...prev,
-          imagen: 'La imagen no debe superar los 5MB'
-        }));
-        return;
-      }
+    // Reset input
+    e.target.value = '';
+  };
 
-      setFormData(prev => ({
-        ...prev,
-        imagen: file
-      }));
+  // Remover imagen nueva (preview)
+  const removeNewImage = (index) => {
+    setPreviewImages(prev => prev.filter((_, i) => i !== index));
+    setNewImages(prev => prev.filter((_, i) => i !== index));
+  };
 
-      // Crear preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
+  // Marcar imagen existente para eliminación
+  const markImageForRemoval = (imageIndex) => {
+    setImagesToRemove(prev => [...prev, imageIndex]);
+  };
 
-      // Limpiar error
-      if (errors.imagen) {
-        setErrors(prev => ({
-          ...prev,
-          imagen: ''
-        }));
-      }
-    }
+  // Restaurar imagen marcada para eliminación
+  const restoreImage = (imageIndex) => {
+    setImagesToRemove(prev => prev.filter(idx => idx !== imageIndex));
   };
 
   // Manejar características
-  const handleCaracteristicaChange = (index, value) => {
-    const newCaracteristicas = [...formData.caracteristicas];
-    newCaracteristicas[index] = value;
-    setFormData(prev => ({
-      ...prev,
-      caracteristicas: newCaracteristicas
-    }));
-
-    // Limpiar error
-    if (errors.caracteristicas) {
-      setErrors(prev => ({
-        ...prev,
-        caracteristicas: ''
-      }));
-    }
-  };
-
-  const addCaracteristica = () => {
-    setFormData(prev => ({
-      ...prev,
-      caracteristicas: [...prev.caracteristicas, '']
-    }));
-  };
-
-  const removeCaracteristica = (index) => {
-    if (formData.caracteristicas.length > 1) {
-      const newCaracteristicas = formData.caracteristicas.filter((_, i) => i !== index);
+  const addCharacteristic = () => {
+    if (currentCharacteristic.trim()) {
       setFormData(prev => ({
         ...prev,
-        caracteristicas: newCaracteristicas
+        caracteristicas: [...prev.caracteristicas, currentCharacteristic.trim()]
       }));
+      setCurrentCharacteristic('');
     }
   };
 
-  // Enviar formulario
+  const removeCharacteristic = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      caracteristicas: prev.caracteristicas.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Obtener todas las imágenes para la galería
+  const getAllImagesForGallery = () => {
+    const images = [];
+    
+    // Imágenes existentes no marcadas para eliminación
+    existingImages.forEach((image, index) => {
+      if (!imagesToRemove.includes(index)) {
+        images.push({ type: 'existing', src: image, index });
+      }
+    });
+    
+    // Nuevas imágenes
+    previewImages.forEach((preview, index) => {
+      images.push({ type: 'new', src: preview.preview, index, name: preview.name });
+    });
+    
+    return images;
+  };
+
+  // Manejar envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
-
     try {
-      // Preparar datos para envío - SOLO enviar el ID de la categoría
-      const dataToSubmit = {
+      const productData = {
         ...formData,
-        categoria: formData.categoria, // Solo el ID de la categoría
         precio: parseFloat(formData.precio),
         cantidad: parseInt(formData.cantidad),
-        caracteristicas: formData.caracteristicas.filter(c => c.trim())
+        caracteristicas: formData.caracteristicas
       };
 
-      if (product) {
-        // Actualizar producto existente
-        await dispatch(updateProduct({ 
+      if (isEditing) {
+        // Primero actualizar los datos del producto
+        if (newImages.length > 0) {
+          productData.imagenes = newImages;
+        }
+        
+        const result = await dispatch(updateProduct({ 
           id: product._id, 
-          productData: dataToSubmit 
+          productData 
         })).unwrap();
+
+        // Si hay imágenes marcadas para eliminación, eliminarlas una por una
+        for (const imageIndex of imagesToRemove) {
+          await dispatch(removeProductImage({
+            id: product._id,
+            imageIndex
+          })).unwrap();
+        }
+
       } else {
         // Crear nuevo producto
-        await dispatch(createProduct(dataToSubmit)).unwrap();
+        if (newImages.length > 0) {
+          productData.imagenes = newImages;
+        }
+        
+        await dispatch(createProduct(productData)).unwrap();
       }
-
-      // Cerrar modal si la operación fue exitosa
+      
       onClose();
     } catch (error) {
-      // El error ya se maneja en el useEffect de apiError
       console.error('Error al guardar producto:', error);
     }
   };
 
+  // Navegación de galería
+  const nextImage = () => {
+    const allImages = getAllImagesForGallery();
+    setSelectedImageIndex((prev) => prev === allImages.length - 1 ? 0 : prev + 1);
+  };
+
+  const prevImage = () => {
+    const allImages = getAllImagesForGallery();
+    setSelectedImageIndex((prev) => prev === 0 ? allImages.length - 1 : prev - 1);
+  };
+
   if (!isOpen) return null;
+
+  const allImages = getAllImagesForGallery();
+  const totalImages = allImages.length;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content product-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">
-            {product ? 'Editar Producto' : 'Agregar Nuevo Producto'}
+            {isEditing ? 'Editar Producto' : 'Agregar Nuevo Producto'}
           </h2>
           <button className="close-btn" onClick={onClose}>
             <X size={24} />
           </button>
         </div>
 
-        <div className="modal-body">
-          <form onSubmit={handleSubmit}>
-            {errors.submit && (
-              <div className="submit-error">
-                <AlertCircle size={20} />
-                {errors.submit}
+        <form onSubmit={handleSubmit} className="modal-body">
+          {/* Información básica */}
+          <div className="form-section">
+            <h3>Información Básica</h3>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="nombre">Nombre del Producto *</label>
+                <input
+                  type="text"
+                  id="nombre"
+                  name="nombre"
+                  value={formData.nombre}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Ingrese el nombre del producto"
+                />
               </div>
-            )}
-
-            {/* Nombre */}
-            <div className="form-group">
-              <label className="form-label">Nombre del Producto *</label>
-              <input
-                type="text"
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleInputChange}
-                className={`form-input ${errors.nombre ? 'error' : ''}`}
-                placeholder="Ingresa el nombre del producto"
-                disabled={isLoading}
-              />
-              {errors.nombre && (
-                <div className="error-message">
-                  <AlertCircle size={16} />
-                  {errors.nombre}
-                </div>
-              )}
+              <div className="form-group">
+                <label htmlFor="categoria">Categoría *</label>
+                <select
+                  id="categoria"
+                  name="categoria"
+                  value={formData.categoria}
+                  onChange={handleInputChange}
+                  required
+                >
+                  <option value="">Seleccione una categoría</option>
+                  {categories.map(category => (
+                    <option key={category._id} value={category._id}>
+                      {category.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Descripción */}
             <div className="form-group">
-              <label className="form-label">Descripción *</label>
+              <label htmlFor="descripcion">Descripción *</label>
               <textarea
+                id="descripcion"
                 name="descripcion"
                 value={formData.descripcion}
                 onChange={handleInputChange}
-                className={`form-textarea ${errors.descripcion ? 'error' : ''}`}
-                placeholder="Describe las características principales del producto"
-                disabled={isLoading}
+                required
+                rows="3"
+                placeholder="Describe el producto..."
               />
-              {errors.descripcion && (
-                <div className="error-message">
-                  <AlertCircle size={16} />
-                  {errors.descripcion}
-                </div>
-              )}
             </div>
 
-            {/* Precio y Cantidad */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Precio *</label>
+                <label htmlFor="precio">Precio *</label>
                 <input
                   type="number"
+                  id="precio"
                   name="precio"
                   value={formData.precio}
                   onChange={handleInputChange}
-                  className={`form-input ${errors.precio ? 'error' : ''}`}
-                  placeholder="0.00"
-                  step="0.01"
+                  required
                   min="0"
-                  disabled={isLoading}
+                  step="0.01"
+                  placeholder="0.00"
                 />
-                {errors.precio && (
-                  <div className="error-message">
-                    <AlertCircle size={16} />
-                    {errors.precio}
-                  </div>
-                )}
               </div>
-
               <div className="form-group">
-                <label className="form-label">Cantidad *</label>
+                <label htmlFor="cantidad">Stock *</label>
                 <input
                   type="number"
+                  id="cantidad"
                   name="cantidad"
                   value={formData.cantidad}
                   onChange={handleInputChange}
-                  className={`form-input ${errors.cantidad ? 'error' : ''}`}
-                  placeholder="0"
+                  required
                   min="0"
-                  disabled={isLoading}
+                  placeholder="0"
                 />
-                {errors.cantidad && (
-                  <div className="error-message">
-                    <AlertCircle size={16} />
-                    {errors.cantidad}
-                  </div>
-                )}
               </div>
             </div>
+          </div>
 
-            {/* Categoría - Ahora usando las categorías del backend */}
-            <div className="form-group">
-              <label className="form-label">Categoría *</label>
-              <select
-                name="categoria"
-                value={formData.categoria}
-                onChange={handleInputChange}
-                className={`form-select ${errors.categoria ? 'error' : ''}`}
-                disabled={isLoading}
-              >
-                <option value="">Selecciona una categoría</option>
-                {categories.map(categoria => (
-                  <option key={categoria._id} value={categoria._id}>
-                    {categoria.nombre}
-                  </option>
-                ))}
-              </select>
-              {errors.categoria && (
-                <div className="error-message">
-                  <AlertCircle size={16} />
-                  {errors.categoria}
+          {/* Imágenes */}
+          <div className="form-section">
+            <h3>Imágenes del Producto</h3>
+            
+            {/* Upload de nuevas imágenes */}
+            <div className="image-upload-section">
+              <label className="image-upload-label">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="image-upload-input"
+                />
+                <div className="image-upload-area">
+                  <Upload size={24} />
+                  <span>Seleccionar Imágenes</span>
+                  <small>Soporta múltiples imágenes (JPG, PNG, etc.)</small>
                 </div>
-              )}
-              {categories.length === 0 && (
-                <div className="info-message">
-                  <AlertCircle size={16} />
-                  No hay categorías disponibles. Crea una categoría primero.
-                </div>
-              )}
-            </div>
-
-            {/* Imagen */}
-            <div className="form-group">
-              <label className="form-label">
-                Imagen {!product && '*'}
               </label>
-              <div className={`image-upload-container ${imagePreview ? 'has-image' : ''}`}>
-                {imagePreview ? (
-                  <div style={{ position: 'relative' }}>
-                    <img src={imagePreview} alt="Preview" className="image-preview" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      disabled={isLoading}
-                      style={{ 
-                        position: 'absolute', 
-                        top: 0, 
-                        left: 0, 
-                        width: '100%', 
-                        height: '100%', 
-                        opacity: 0, 
-                        cursor: 'pointer' 
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <label style={{ cursor: 'pointer', display: 'block' }}>
-                    <Upload size={32} color="#64748b" />
-                    <div className="upload-text">
-                      <strong>Click para subir</strong> o arrastra una imagen aquí
-                      <br />
-                      <small>PNG, JPG hasta 5MB</small>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      disabled={isLoading}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
-                )}
-              </div>
-              {errors.imagen && (
-                <div className="error-message">
-                  <AlertCircle size={16} />
-                  {errors.imagen}
-                </div>
-              )}
             </div>
 
-            {/* Características */}
-            <div className="form-group">
-              <label className="form-label">Características *</label>
-              <div className="caracteristicas-container">
-                {formData.caracteristicas.map((caracteristica, index) => (
-                  <div key={index} className="caracteristica-row">
-                    <input
-                      type="text"
-                      value={caracteristica}
-                      onChange={(e) => handleCaracteristicaChange(index, e.target.value)}
-                      className="form-input caracteristica-input"
-                      placeholder={`Característica ${index + 1}`}
-                      disabled={isLoading}
-                    />
-                    {formData.caracteristicas.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeCaracteristica(index)}
-                        className="remove-caracteristica-btn"
-                        disabled={isLoading}
-                        title="Eliminar característica"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
-                ))}
+            {/* Galería de imágenes */}
+            {totalImages > 0 && (
+              <div className="images-gallery-section">
+                <h4>Imágenes ({totalImages})</h4>
                 
+                {/* Vista principal */}
+                <div className="main-image-preview">
+                  {totalImages > 0 && allImages[selectedImageIndex] && (
+                    <div className="main-image-container">
+                      <img
+                        src={allImages[selectedImageIndex].src}
+                        alt={`Imagen ${selectedImageIndex + 1}`}
+                        className="main-preview-image"
+                        onClick={() => setShowImageGallery(true)}
+                      />
+                      
+                      {totalImages > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            className="gallery-nav-btn prev"
+                            onClick={prevImage}
+                          >
+                            <ChevronLeft size={20} />
+                          </button>
+                          <button
+                            type="button"
+                            className="gallery-nav-btn next"
+                            onClick={nextImage}
+                          >
+                            <ChevronRight size={20} />
+                          </button>
+                          <div className="image-counter-large">
+                            {selectedImageIndex + 1} de {totalImages}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Miniaturas */}
+                <div className="thumbnails-grid">
+                  {/* Imágenes existentes */}
+                  {existingImages.map((image, index) => (
+                    <div
+                      key={`existing-${index}`}
+                      className={`thumbnail-item ${imagesToRemove.includes(index) ? 'marked-for-removal' : ''} ${
+                        selectedImageIndex === allImages.findIndex(img => img.type === 'existing' && img.index === index) ? 'active' : ''
+                      }`}
+                    >
+                      <img
+                        src={image}
+                        alt={`Imagen existente ${index + 1}`}
+                        onClick={() => {
+                          const imgIndex = allImages.findIndex(img => img.type === 'existing' && img.index === index);
+                          if (imgIndex !== -1) setSelectedImageIndex(imgIndex);
+                        }}
+                      />
+                      <div className="thumbnail-actions">
+                        {imagesToRemove.includes(index) ? (
+                          <button
+                            type="button"
+                            className="restore-btn"
+                            onClick={() => restoreImage(index)}
+                            title="Restaurar imagen"
+                          >
+                            Restaurar
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="remove-btn"
+                            onClick={() => markImageForRemoval(index)}
+                            title="Marcar para eliminación"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                      {imagesToRemove.includes(index) && (
+                        <div className="removal-overlay">
+                          <span>Se eliminará</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Nuevas imágenes */}
+                  {previewImages.map((preview, index) => (
+                    <div
+                      key={`new-${index}`}
+                      className={`thumbnail-item new-image ${
+                        selectedImageIndex === allImages.findIndex(img => img.type === 'new' && img.index === index) ? 'active' : ''
+                      }`}
+                    >
+                      <img
+                        src={preview.preview}
+                        alt={`Nueva imagen ${index + 1}`}
+                        onClick={() => {
+                          const imgIndex = allImages.findIndex(img => img.type === 'new' && img.index === index);
+                          if (imgIndex !== -1) setSelectedImageIndex(imgIndex);
+                        }}
+                      />
+                      <div className="thumbnail-actions">
+                        <button
+                          type="button"
+                          className="remove-btn"
+                          onClick={() => removeNewImage(index)}
+                          title="Eliminar imagen nueva"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <div className="new-image-badge">Nueva</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Características */}
+          <div className="form-section">
+            <h3>Características</h3>
+            <div className="characteristics-input">
+              <div className="form-row">
+                <div className="form-group flex-1">
+                  <input
+                    type="text"
+                    value={currentCharacteristic}
+                    onChange={(e) => setCurrentCharacteristic(e.target.value)}
+                    placeholder="Agregar característica..."
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCharacteristic())}
+                  />
+                </div>
                 <button
                   type="button"
-                  onClick={addCaracteristica}
-                  className="add-caracteristica-btn"
-                  disabled={isLoading}
+                  className="add-characteristic-btn"
+                  onClick={addCharacteristic}
+                  disabled={!currentCharacteristic.trim()}
                 >
                   <Plus size={16} />
-                  Agregar característica
+                  Agregar
                 </button>
               </div>
-              {errors.caracteristicas && (
-                <div className="error-message">
-                  <AlertCircle size={16} />
-                  {errors.caracteristicas}
-                </div>
-              )}
             </div>
 
-            {/* Botones de acción */}
-            <div className="modal-actions">
-              <button
-                type="button"
-                onClick={onClose}
-                className="cancel-btn"
-                disabled={isLoading}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="submit-btn"
-                disabled={isLoading || categories.length === 0}
-              >
-                {isLoading ? (
-                  <>
-                    <div className="loading-spinner"></div>
-                    {product ? 'Actualizando...' : 'Guardando...'}
-                  </>
-                ) : (
-                  product ? 'Actualizar Producto' : 'Crear Producto'
-                )}
-              </button>
+            {formData.caracteristicas.length > 0 && (
+              <div className="characteristics-list">
+                {formData.caracteristicas.map((characteristic, index) => (
+                  <div key={index} className="characteristic-item">
+                    <span>{characteristic}</span>
+                    <button
+                      type="button"
+                      className="remove-characteristic-btn"
+                      onClick={() => removeCharacteristic(index)}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="error-message">
+              {error}
             </div>
-          </form>
+          )}
+        </form>
+
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="cancel-btn"
+            onClick={onClose}
+            disabled={loading}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className="submit-btn"
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? 'Guardando...' : (isEditing ? 'Actualizar Producto' : 'Crear Producto')}
+          </button>
         </div>
+
+        {/* Modal de galería expandida */}
+        {showImageGallery && totalImages > 0 && (
+          <div className="image-gallery-modal" onClick={() => setShowImageGallery(false)}>
+            <div className="gallery-content" onClick={(e) => e.stopPropagation()}>
+              <div className="gallery-header">
+                <h3>Galería de Imágenes</h3>
+                <button
+                  className="close-gallery-btn"
+                  onClick={() => setShowImageGallery(false)}
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="gallery-main-image">
+                <img
+                  src={allImages[selectedImageIndex]?.src}
+                  alt={`Imagen ${selectedImageIndex + 1}`}
+                />
+                
+                {totalImages > 1 && (
+                  <>
+                    <button
+                      className="gallery-nav-btn prev"
+                      onClick={prevImage}
+                    >
+                      <ChevronLeft size={24} />
+                    </button>
+                    <button
+                      className="gallery-nav-btn next"
+                      onClick={nextImage}
+                    >
+                      <ChevronRight size={24} />
+                    </button>
+                    <div className="gallery-counter">
+                      {selectedImageIndex + 1} de {totalImages}
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              <div className="gallery-thumbnails">
+                {allImages.map((image, index) => (
+                  <img
+                    key={index}
+                    src={image.src}
+                    alt={`Miniatura ${index + 1}`}
+                    className={`gallery-thumbnail ${index === selectedImageIndex ? 'active' : ''}`}
+                    onClick={() => setSelectedImageIndex(index)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ function Productos() {
   const navigate = useNavigate();
   
   const [randomProducts, setRandomProducts] = useState([]);
+  const [selectedImages, setSelectedImages] = useState({}); // Para trackear la imagen seleccionada por producto
   
   // Número de productos a mostrar
   const PRODUCTS_TO_SHOW = 3;
@@ -26,7 +27,15 @@ function Productos() {
     if (products && products.length > 0) {
       // Obtener productos aleatorios
       const shuffled = [...products].sort(() => 0.5 - Math.random());
-      setRandomProducts(shuffled.slice(0, Math.min(PRODUCTS_TO_SHOW, shuffled.length)));
+      const selectedProducts = shuffled.slice(0, Math.min(PRODUCTS_TO_SHOW, shuffled.length));
+      setRandomProducts(selectedProducts);
+      
+      // Inicializar las imágenes seleccionadas (primera imagen por defecto)
+      const initialSelectedImages = {};
+      selectedProducts.forEach(product => {
+        initialSelectedImages[product._id] = 0; // Índice de la primera imagen
+      });
+      setSelectedImages(initialSelectedImages);
     }
   }, [products]);
 
@@ -35,14 +44,56 @@ function Productos() {
     if (products && products.length > PRODUCTS_TO_SHOW) {
       const interval = setInterval(() => {
         const shuffled = [...products].sort(() => 0.5 - Math.random());
-        setRandomProducts(shuffled.slice(0, PRODUCTS_TO_SHOW));
+        const selectedProducts = shuffled.slice(0, PRODUCTS_TO_SHOW);
+        setRandomProducts(selectedProducts);
+        
+        // Actualizar imágenes seleccionadas para los nuevos productos
+        const newSelectedImages = {};
+        selectedProducts.forEach(product => {
+          newSelectedImages[product._id] = 0;
+        });
+        setSelectedImages(newSelectedImages);
       }, 10000); // 10 segundos
 
       return () => clearInterval(interval);
     }
   }, [products]);
 
+  // Función para obtener la imagen a mostrar
+  const getProductImage = (product) => {
+    if (!product) return '/placeholder-product.png';
+    
+    // Si tiene múltiples imágenes (array)
+    if (product.imagenes && Array.isArray(product.imagenes) && product.imagenes.length > 0) {
+      const selectedIndex = selectedImages[product._id] || 0;
+      const selectedImage = product.imagenes[selectedIndex];
+      
+      // Si la imagen es un objeto con datos base64
+      if (typeof selectedImage === 'object' && selectedImage.data) {
+        return `data:${selectedImage.contentType};base64,${selectedImage.data}`;
+      }
+      // Si la imagen es directamente una cadena base64
+      if (typeof selectedImage === 'string') {
+        return selectedImage.startsWith('data:') ? selectedImage : `data:image/jpeg;base64,${selectedImage}`;
+      }
+    }
+    
+    // Fallback a imagen única si existe
+    if (product.imagen) {
+      return product.imagen;
+    }
+    
+    // Imagen por defecto
+    return '/placeholder-product.png';
+  };
 
+  // Función para cambiar la imagen seleccionada
+  const handleImageChange = (productId, imageIndex) => {
+    setSelectedImages(prev => ({
+      ...prev,
+      [productId]: imageIndex
+    }));
+  };
 
   // Función para truncar texto
   const truncateText = (text, maxLength = 100) => {
@@ -137,13 +188,14 @@ function Productos() {
           {randomProducts.length > 0 ? (
             randomProducts.map((product) => {
               const stockStatus = getStockStatus(product.stock);
+              const hasMultipleImages = product.imagenes && Array.isArray(product.imagenes) && product.imagenes.length > 1;
               
               return (
                 <div key={product.id || product._id} className="product-card">
                   {/* Imagen del producto */}
                   <div className="product-image-container">
                     <img 
-                      src={product.imagen}
+                      src={getProductImage(product)}
                       alt={product.nombre || 'Producto'}
                       className="producto-image"
                       loading="lazy"
@@ -157,6 +209,26 @@ function Productos() {
                       {getCategoryName(product.categoria)}
                     </div>
                     
+                    {/* Indicadores de imágenes múltiples */}
+                    {hasMultipleImages && (
+                      <div className="image-indicators">
+                        {product.imagenes.map((_, index) => (
+                          <button
+                            key={index}
+                            className={`indicator ${selectedImages[product._id] === index ? 'active' : ''}`}
+                            onClick={() => handleImageChange(product._id, index)}
+                            title={`Imagen ${index + 1}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Contador de imágenes */}
+                    {hasMultipleImages && (
+                      <div className="image-counter">
+                        {(selectedImages[product._id] || 0) + 1}/{product.imagenes.length}
+                      </div>
+                    )}
                   </div>
 
                   {/* Contenido del producto */}

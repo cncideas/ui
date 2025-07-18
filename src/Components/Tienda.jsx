@@ -40,6 +40,15 @@ const Tienda = () => {
     dispatch(setSelectedCategory(categoria === 'todas' ? 'all' : categoria));
   };
 
+  // Función para obtener la primera imagen del producto
+  const obtenerImagenPrincipal = (producto) => {
+    if (producto.imagenes && producto.imagenes.length > 0) {
+      return producto.imagenes[0]; // Primera imagen del array
+    }
+    // Imagen por defecto si no hay imágenes
+    return '/placeholder-product.jpg';
+  };
+
   return (
     <div className="tienda-page">
       <Navbar />
@@ -47,7 +56,7 @@ const Tienda = () => {
       <section className="tienda-hero">
         <div className="container">
           <h1>Nuestra Tienda</h1>
-          <p>Descubre  productos CNC ... siempre a los mejores precios!!!</p>
+          <p>Descubre productos CNC ... siempre a los mejores precios!!!</p>
         </div>
       </section>
 
@@ -85,14 +94,25 @@ const Tienda = () => {
               productos.map((producto) => (
                 <div className="producto-card" key={producto.id || producto._id}>
                   <div className="producto-imagen">
-                    <img src={producto.imagen} alt={producto.nombre} />
+                    <img 
+                      src={obtenerImagenPrincipal(producto)} 
+                      alt={producto.nombre}
+                      onError={(e) => {
+                        e.target.src = '/placeholder-product.jpg';
+                      }}
+                    />
+                    {/* Indicador de múltiples imágenes */}
+                    {producto.imagenes && producto.imagenes.length > 1 && (
+                      <div className="imagen-contador">
+                        <span>{producto.imagenes.length} fotos</span>
+                      </div>
+                    )}
                   </div>
                   <div className="producto-info">
                     <h3>{producto.nombre}</h3>
                     <p>{producto.descripcion}</p>
-                    <div className="producto-precio">${producto.precio}</div>
+                    <div className="producto-precio">{producto.precio}</div>
                     <div className="producto-acciones">
-                      
                       <Link to={`/producto/${producto._id || producto.id}`} className="btn btn-secondary">
                         Ver detalles
                       </Link>

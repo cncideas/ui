@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchProductById,
@@ -20,10 +20,45 @@ const ProductoDetalle = () => {
   const cargando = useSelector(selectProductsLoading);
   const [cantidad, setCantidad] = useState(1);
   const [tabActiva, setTabActiva] = useState('descripcion');
+  const [imagenPrincipal, setImagenPrincipal] = useState(0);
+  const [mostrarModalImagen, setMostrarModalImagen] = useState(false);
+  const [imagenModal, setImagenModal] = useState(0);
 
   useEffect(() => {
     dispatch(fetchProductById(id));
   }, [dispatch, id]);
+
+  // Reset imagen principal cuando cambie el producto
+  useEffect(() => {
+    if (producto && producto.imagenes && producto.imagenes.length > 0) {
+      setImagenPrincipal(0);
+      setImagenModal(0);
+    }
+  }, [producto]);
+
+  // Manejo de navegación con teclado en el modal
+  useEffect(() => {
+    const manejarTecla = (e) => {
+      if (!mostrarModalImagen) return;
+      
+      switch(e.key) {
+        case 'Escape':
+          cerrarModalImagen();
+          break;
+        case 'ArrowLeft':
+          navegarModalImagen('prev');
+          break;
+        case 'ArrowRight':
+          navegarModalImagen('next');
+          break;
+        default:
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', manejarTecla);
+    return () => document.removeEventListener('keydown', manejarTecla);
+  }, [mostrarModalImagen, imagenModal, producto]);
 
   const agregarAlCarrito = () => {
     const carrito = JSON.parse(localStorage.getItem('carrito') || '[]');
@@ -36,7 +71,7 @@ const ProductoDetalle = () => {
         _id: producto._id,
         nombre: producto.nombre,
         precio: producto.precio,
-        imagen: producto.imagen,
+        imagen: producto.imagenes && producto.imagenes.length > 0 ? producto.imagenes[0] : null,
         cantidad
       });
     }
@@ -44,6 +79,10 @@ const ProductoDetalle = () => {
     localStorage.setItem('carrito', JSON.stringify(carrito));
     
     // Notificación moderna
+    mostrarNotificacion(`✅ ${producto.nombre} agregado al carrito`);
+  };
+
+  const mostrarNotificacion = (mensaje) => {
     const notification = document.createElement('div');
     notification.style.cssText = `
       position: fixed;
@@ -57,8 +96,9 @@ const ProductoDetalle = () => {
       z-index: 10000;
       font-weight: 600;
       animation: slideIn 0.5s ease-out;
+      max-width: 300px;
     `;
-    notification.innerHTML = `✅ ${producto.nombre} agregado al carrito`;
+    notification.innerHTML = mensaje;
     document.body.appendChild(notification);
     
     setTimeout(() => {
@@ -71,20 +111,72 @@ const ProductoDetalle = () => {
     setTimeout(() => navigate('/carrito'), 500);
   };
 
-  const compartirProducto = () => {
+  const compartirProducto = async () => {
     const url = window.location.href;
-    const texto = `¡Mira este producto! ${producto.nombre} - $${producto.precio}`;
+    const texto = `¡Mira este producto! ${producto.nombre} - $${producto.precio?.toLocaleString()}`;
     
     if (navigator.share) {
-      navigator.share({
-        title: producto.nombre,
-        text: texto,
-        url: url,
-      });
+      try {
+        await navigator.share({
+          title: producto.nombre,
+          text: texto,
+          url: url,
+        });
+      } catch (error) {
+        console.log('Error al compartir:', error);
+      }
     } else {
       // Fallback para navegadores que no soportan Web Share API
-      navigator.clipboard.writeText(`${texto} ${url}`);
-      alert('Enlace copiado al portapapeles');
+      try {
+        await navigator.clipboard.writeText(`${texto} ${url}`);
+        mostrarNotificacion('📋 Enlace copiado al portapapeles');
+      } catch (error) {
+        console.log('Error al copiar:', error);
+        mostrarNotificacion('❌ Error al copiar enlace');
+      }
+    }
+  };
+
+  const cambiarImagenPrincipal = (indice) => {
+    setImagenPrincipal(indice);
+  };
+
+  const navegarImagen = (direccion) => {
+    if (!producto.imagenes || producto.imagenes.length <= 1) return;
+    
+    if (direccion === 'next') {
+      setImagenPrincipal((prev) => 
+        prev === producto.imagenes.length - 1 ? 0 : prev + 1
+      );
+    } else {
+      setImagenPrincipal((prev) => 
+        prev === 0 ? producto.imagenes.length - 1 : prev - 1
+      );
+    }
+  };
+
+  const abrirModalImagen = (indice = imagenPrincipal) => {
+    setImagenModal(indice);
+    setMostrarModalImagen(true);
+    document.body.style.overflow = 'hidden'; // Prevenir scroll
+  };
+
+  const cerrarModalImagen = () => {
+    setMostrarModalImagen(false);
+    document.body.style.overflow = 'auto';
+  };
+
+  const navegarModalImagen = (direccion) => {
+    if (!producto.imagenes || producto.imagenes.length <= 1) return;
+    
+    if (direccion === 'next') {
+      setImagenModal((prev) => 
+        prev === producto.imagenes.length - 1 ? 0 : prev + 1
+      );
+    } else {
+      setImagenModal((prev) => 
+        prev === 0 ? producto.imagenes.length - 1 : prev - 1
+      );
     }
   };
 
@@ -120,6 +212,9 @@ const ProductoDetalle = () => {
     );
   }
 
+  const imagenes = producto.imagenes || [];
+  const tieneImagenes = imagenes.length > 0;
+
   return (
     <div className="producto-detalle-page">
       <Navbar />
@@ -143,28 +238,102 @@ const ProductoDetalle = () => {
       <section className="producto-detalle-main">
         <div className="container">
           <div className="producto-detalle-grid">
+            
+            {/* GALERÍA DE IMÁGENES */}
             <div className="producto-galeria">
-              <div className="imagen-principal">
-                {producto.imagen ? (
-                  <img 
-                    src={producto.imagen} 
-                    alt={producto.nombre}
-                    onError={(e) => {
-                      console.error('Error cargando imagen:', e);
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                ) : null}
-                <div className="imagen-placeholder" style={{ display: producto.imagen ? 'none' : 'flex' }}>
-                  <div>
-                    <p>📦</p>
-                    <p>Sin imagen disponible</p>
+              {tieneImagenes ? (
+                <>
+                  {/* Imagen principal */}
+                  <div className="imagen-principal-container">
+                    <div className="imagen-principal" onClick={() => abrirModalImagen(imagenPrincipal)}>
+                      <img 
+                        src={imagenes[imagenPrincipal]} 
+                        alt={`${producto.nombre} - Imagen ${imagenPrincipal + 1}`}
+                        onError={(e) => {
+                          console.error('Error cargando imagen:', e);
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="imagen-placeholder" style={{ display: 'none' }}>
+                        <div>
+                          <p>📦</p>
+                          <p>Error al cargar imagen</p>
+                        </div>
+                      </div>
+                      
+                      {/* Botón de zoom */}
+                      <div className="zoom-btn">
+                        <span>🔍</span>
+                      </div>
+                      
+                      {/* Indicador de múltiples imágenes */}
+                      {imagenes.length > 1 && (
+                        <div className="imagen-contador">
+                          <span>{imagenPrincipal + 1} / {imagenes.length}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Controles de navegación */}
+                    {imagenes.length > 1 && (
+                      <>
+                        <button 
+                          className="nav-btn nav-btn-prev" 
+                          onClick={() => navegarImagen('prev')}
+                          aria-label="Imagen anterior"
+                        >
+                          ‹
+                        </button>
+                        <button 
+                          className="nav-btn nav-btn-next" 
+                          onClick={() => navegarImagen('next')}
+                          aria-label="Siguiente imagen"
+                        >
+                          ›
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Miniaturas */}
+                  {imagenes.length > 1 && (
+                    <div className="imagenes-miniatura">
+                      {imagenes.map((imagen, indice) => (
+                        <div
+                          key={indice}
+                          className={`miniatura ${indice === imagenPrincipal ? 'activa' : ''}`}
+                          onClick={() => cambiarImagenPrincipal(indice)}
+                        >
+                          <img 
+                            src={imagen} 
+                            alt={`${producto.nombre} - Miniatura ${indice + 1}`}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="miniatura-placeholder" style={{ display: 'none' }}>
+                            <span>📷</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="imagen-principal-container">
+                  <div className="imagen-placeholder-principal">
+                    <div>
+                      <p>📦</p>
+                      <p>Sin imágenes disponibles</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
+            {/* INFORMACIÓN DEL PRODUCTO */}
             <div className="producto-info-detalle">
               <h1>{producto.nombre}</h1>
               
@@ -175,7 +344,7 @@ const ProductoDetalle = () => {
               </div>
 
               <div className="producto-precio-detalle">
-                <span className="precio-actual">${producto.precio?.toLocaleString()}</span>
+                <span className="precio-actual">{producto.precio?.toLocaleString()}</span>
               </div>
 
               <div className="producto-descripcion">
@@ -233,7 +402,7 @@ const ProductoDetalle = () => {
             </div>
           </div>
 
-          {/* Tabs de información adicional */}
+          {/* TABS DE INFORMACIÓN ADICIONAL */}
           <div className="producto-tabs">
             <div className="tabs-nav">
               <button 
@@ -248,12 +417,7 @@ const ProductoDetalle = () => {
               >
                 ⚙️ Especificaciones
               </button>
-              <button 
-                className={`tab-btn ${tabActiva === 'garantia' ? 'active' : ''}`}
-                onClick={() => setTabActiva('garantia')}
-              >
-                🛡️ Garantía
-              </button>
+           
             </div>
 
             <div className={`tab-content ${tabActiva === 'descripcion' ? 'active' : ''}`}>
@@ -286,22 +450,98 @@ const ProductoDetalle = () => {
                   <strong>Disponibilidad:</strong>
                   <span>En stock</span>
                 </div>
+                <div className="requisito-item">
+                  <strong>Imágenes:</strong>
+                  <span>{imagenes.length} foto{imagenes.length !== 1 ? 's' : ''}</span>
+                </div>
+
+                <div className="requisito-item">
+                  <strong>Vídeo:</strong>
+                  <span>{(JSON.parse(producto.caracteristicas))}</span>
+                </div>
               </div>
+              
             </div>
 
             <div className={`tab-content ${tabActiva === 'garantia' ? 'active' : ''}`}>
-              <h3>Garantía y Servicio</h3>
+              <h3>Revisa Video ...</h3>
               <ul>
-                <li>Garantía de 12 meses contra defectos de fabricación</li>
-                <li>Servicio técnico especializado</li>
-                <li>Soporte telefónico y por chat</li>
-                <li>Cambios y devoluciones dentro de los 30 días</li>
-                <li>Envío gratuito en compras superiores a $100.000</li>
+                <li>{producto.caracteristicas}</li>
+                
               </ul>
             </div>
           </div>
         </div>
       </section>
+
+      {/* MODAL DE IMAGEN */}
+      {mostrarModalImagen && (
+        <div className="modal-imagen-overlay" onClick={cerrarModalImagen}>
+          <div className="modal-imagen-container" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-cerrar" onClick={cerrarModalImagen}>
+              ✕
+            </button>
+            
+            <div className="modal-imagen-content">
+              <img 
+                src={imagenes[imagenModal]} 
+                alt={`${producto.nombre} - Imagen ${imagenModal + 1}`}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+              <div className="modal-imagen-placeholder" style={{ display: 'none' }}>
+                <div>
+                  <p>📦</p>
+                  <p>Error al cargar imagen</p>
+                </div>
+              </div>
+            </div>
+            
+            {imagenes.length > 1 && (
+              <>
+                <button 
+                  className="modal-nav-btn modal-nav-prev" 
+                  onClick={() => navegarModalImagen('prev')}
+                  aria-label="Imagen anterior"
+                >
+                  ‹
+                </button>
+                <button 
+                  className="modal-nav-btn modal-nav-next" 
+                  onClick={() => navegarModalImagen('next')}
+                  aria-label="Siguiente imagen"
+                >
+                  ›
+                </button>
+                
+                <div className="modal-contador">
+                  <span>{imagenModal + 1} / {imagenes.length}</span>
+                </div>
+              </>
+            )}
+            
+            {/* Miniaturas en el modal */}
+            {imagenes.length > 1 && (
+              <div className="modal-miniaturas">
+                {imagenes.map((imagen, indice) => (
+                  <div
+                    key={indice}
+                    className={`modal-miniatura ${indice === imagenModal ? 'activa' : ''}`}
+                    onClick={() => setImagenModal(indice)}
+                  >
+                    <img 
+                      src={imagen} 
+                      alt={`Miniatura ${indice + 1}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <Footer />
       <WhatsAppButton

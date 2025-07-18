@@ -1,10 +1,8 @@
 // src/store/slices/productsSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-// Agregar esta importación en tu productSlice.js
 import { createSelector } from '@reduxjs/toolkit';
 
 // URL base de tu API
-// ✅ Usar variable de entorno con fallback
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 // También puedes crear una función helper para logging en desarrollo
@@ -14,6 +12,7 @@ const logInfo = (message, data) => {
     console.log(message, data);
   }
 };
+
 // Thunks para operaciones asíncronas
 export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
@@ -42,12 +41,21 @@ export const createProduct = createAsyncThunk(
         if (key === 'caracteristicas') {
           // Enviar características como JSON string
           formData.append(key, JSON.stringify(productData[key]));
-        } else if (key === 'imagen' && productData[key]) {
-          formData.append(key, productData[key]);
-        } else {
+        } else if (key === 'imagenes' && productData[key]) {
+          // Manejar múltiples imágenes
+          if (Array.isArray(productData[key])) {
+            productData[key].forEach(file => {
+              formData.append('imagenes', file);
+            });
+          } else {
+            formData.append('imagenes', productData[key]);
+          }
+        } else if (key !== 'imagenes') {
           formData.append(key, productData[key]);
         }
       });
+
+      logInfo('FormData creado para producto:', formData);
 
       const response = await fetch(`${API_BASE_URL}/productos`, {
         method: 'POST',
@@ -77,12 +85,21 @@ export const updateProduct = createAsyncThunk(
       Object.keys(productData).forEach(key => {
         if (key === 'caracteristicas') {
           formData.append(key, JSON.stringify(productData[key]));
-        } else if (key === 'imagen' && productData[key]) {
-          formData.append(key, productData[key]);
-        } else if (productData[key] !== null && productData[key] !== undefined) {
+        } else if (key === 'imagenes' && productData[key]) {
+          // Manejar múltiples imágenes
+          if (Array.isArray(productData[key])) {
+            productData[key].forEach(file => {
+              formData.append('imagenes', file);
+            });
+          } else {
+            formData.append('imagenes', productData[key]);
+          }
+        } else if (key !== 'imagenes' && productData[key] !== null && productData[key] !== undefined) {
           formData.append(key, productData[key]);
         }
       });
+
+      logInfo('FormData creado para actualización:', formData);
 
       const response = await fetch(`${API_BASE_URL}/productos/${id}`, {
         method: 'PATCH',
@@ -129,12 +146,66 @@ export const fetchProductById = createAsyncThunk(
       const res = await fetch(`${API_BASE_URL}/productos/${id}`);
       if (!res.ok) throw new Error('Error al obtener producto');
       const data = await res.json();
-      return data; // Ya viene con la imagen en formato base64
+      return data; // Ya viene con las imágenes en formato base64
     } catch (error) {
       return rejectWithValue(error.message);
     }
   }
-);;
+);
+
+// Nuevos thunks para manejar imágenes específicas
+export const addProductImages = createAsyncThunk(
+  'products/addProductImages',
+  async ({ id, imageFiles }, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      
+      if (Array.isArray(imageFiles)) {
+        imageFiles.forEach(file => {
+          formData.append('imagenes', file);
+        });
+      } else {
+        formData.append('imagenes', imageFiles);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/productos/${id}/imagenes`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al agregar imágenes');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const removeProductImage = createAsyncThunk(
+  'products/removeProductImage',
+  async ({ id, imageIndex }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/productos/${id}/imagen/${imageIndex}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al eliminar imagen');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
 
 // Slice
 const productsSlice = createSlice({
@@ -205,9 +276,13 @@ const productsSlice = createSlice({
       })
       .addCase(updateProduct.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.items.findIndex(item => item.id === action.payload.id);
+        const index = state.items.findIndex(item => item._id === action.payload._id);
         if (index !== -1) {
           state.items[index] = action.payload;
+        }
+        // También actualizar currentProduct si es el mismo
+        if (state.currentProduct && state.currentProduct._id === action.payload._id) {
+          state.currentProduct = action.payload;
         }
         state.error = null;
       })
@@ -222,13 +297,14 @@ const productsSlice = createSlice({
       })
       .addCase(deleteProduct.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = state.items.filter(item => item.id !== action.payload);
+        state.items = state.items.filter(item => item._id !== action.payload);
         state.error = null;
       })
       .addCase(deleteProduct.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
+      // Fetch product by ID
       .addCase(fetchProductById.pending, (state) => {
         state.loading = true;
         state.currentProduct = null;
@@ -241,8 +317,51 @@ const productsSlice = createSlice({
       .addCase(fetchProductById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // Add product images
+      .addCase(addProductImages.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addProductImages.fulfilled, (state, action) => {
+        state.loading = false;
+        // Actualizar el producto en la lista
+        const index = state.items.findIndex(item => item._id === action.payload._id);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+        // Actualizar currentProduct si es el mismo
+        if (state.currentProduct && state.currentProduct._id === action.payload._id) {
+          state.currentProduct = action.payload;
+        }
+        state.error = null;
+      })
+      .addCase(addProductImages.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Remove product image
+      .addCase(removeProductImage.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(removeProductImage.fulfilled, (state, action) => {
+        state.loading = false;
+        // Actualizar el producto en la lista
+        const index = state.items.findIndex(item => item._id === action.payload._id);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+        // Actualizar currentProduct si es el mismo
+        if (state.currentProduct && state.currentProduct._id === action.payload._id) {
+          state.currentProduct = action.payload;
+        }
+        state.error = null;
+      })
+      .addCase(removeProductImage.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
-
   },
 });
 
@@ -266,7 +385,6 @@ export const selectCurrentPage = (state) => state.products.currentPage;
 export const selectCurrentProduct = (state) => state.products.currentProduct;
 
 // Selector para productos filtrados
-// Reemplaza tu selector selectFilteredProducts con este:
 export const selectFilteredProducts = createSelector(
   [
     (state) => state.products.items,

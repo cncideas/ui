@@ -295,7 +295,7 @@ const Carrito = () => {
                         <div className="producto-info">
                           <h3>{producto.nombre}</h3>
                           <div className="producto-detalles">
-                            <p className="producto-precio">{formatearPrecio(producto.precio)}</p>
+                            <p className="producto-precio">{producto.precio}</p>
                             <p className="producto-categoria">
                               {obtenerIconoProducto(producto)} {producto.categoria || 'Producto'}
                             </p>

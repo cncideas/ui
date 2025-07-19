@@ -457,7 +457,7 @@ const ProductoDetalle = () => {
 
                 <div className="requisito-item">
                   <strong>Vídeo:</strong>
-                  <span>{(JSON.parse(producto.caracteristicas))}</span>
+                  <span>{producto.caracteristicas}</span>
                 </div>
               </div>
               

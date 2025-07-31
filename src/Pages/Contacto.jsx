@@ -71,8 +71,8 @@ const Contacto = () => {
           {/* Información de contacto */}
           <div className="contacto-info">
             <h3>Información de contacto</h3>
-            <p><strong>Teléfono:</strong> <a href="tel:+573001234567">+57 300 123 4567</a></p>
-            <p><strong>Email:</strong> <a href="mailto:info@cncideas.com">info@cncideas.com</a></p>
+            <p><strong>Teléfono:</strong> <a href="tel:+573001234567">+57 3194283570</a></p>
+            <p><strong>Email:</strong> <a href="mailto:info@cncideas.com">tiendacncideas@gmail.com</a></p>
             <p><strong>Ubicación:</strong> Manizales, Caldas - Colombia</p>
           </div>
 

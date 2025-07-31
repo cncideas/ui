@@ -267,12 +267,6 @@ const ProductoDetalle = () => {
                         <span>🔍</span>
                       </div>
                       
-                      {/* Indicador de múltiples imágenes */}
-                      {imagenes.length > 1 && (
-                        <div className="imagen-contador">
-                          <span>{imagenPrincipal + 1} / {imagenes.length}</span>
-                        </div>
-                      )}
                     </div>
                     
                     {/* Controles de navegación */}
@@ -410,13 +404,13 @@ const ProductoDetalle = () => {
                 onClick={() => setTabActiva('descripcion')}
               >
                 📝 Descripción
-              </button>
+              </button>{/*}
               <button 
                 className={`tab-btn ${tabActiva === 'especificaciones' ? 'active' : ''}`}
                 onClick={() => setTabActiva('especificaciones')}
               >
                 ⚙️ Especificaciones
-              </button>
+              </button>*/}
            
             </div>
 

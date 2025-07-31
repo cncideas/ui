@@ -4,7 +4,7 @@
 .tienda-hero {
   padding: 50px 0;
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(30, 64, 175, 0.9)), 
-              url('https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
+              url('/fondo.jpg');
    background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -50,7 +50,7 @@
 .tienda-main {
   padding: 40px 0;
   background: linear-gradient(135deg, rgba(235, 245, 255, 0.7), rgba(220, 238, 255, 0.8)), 
-              url('https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
+              url('/fondo.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;

@@ -101,21 +101,25 @@ const Tienda = () => {
                         e.target.src = '/placeholder-product.jpg';
                       }}
                     />
-                    {/* Indicador de múltiples imágenes */}
-                    {producto.imagenes && producto.imagenes.length > 1 && (
-                      <div className="imagen-contador">
-                        <span>{producto.imagenes.length} fotos</span>
-                      </div>
-                    )}
+                   
                   </div>
                   <div className="producto-info">
                     <h3>{producto.nombre}</h3>
                     <p>{producto.descripcion}</p>
                     <div className="producto-precio">{producto.precio}</div>
                     <div className="producto-acciones">
-                      <Link to={`/producto/${producto._id || producto.id}`} className="btn btn-secondary">
-                        Ver detalles
-                      </Link>
+                      <Link 
+  to={`/producto/${producto._id || producto.id}`} 
+  className="btn btn-secondary"
+  onClick={() => {
+    // Pequeño delay para asegurar que la navegación ocurra primero
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 100);
+  }}
+>
+  Ver detalles
+</Link>
                     </div>
                   </div>
                 </div>

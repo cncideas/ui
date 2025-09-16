@@ -6,12 +6,12 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://cncideas.netlify.app/productos</loc>
+    <loc>https://cncideas.netlify.app/tienda</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://cncideas.netlify.app/contacto</loc>
+    <loc>https://cncideas.netlify.app/planos</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
